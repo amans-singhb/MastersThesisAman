@@ -230,7 +230,7 @@ Drr = Differential(r)^2
 end
 
 
-## Variables ## # should t be removed?
+## Variables ##
 @variables begin
     # Gas phase species balance
     C_i(z)
@@ -247,20 +247,20 @@ end
  
 
 ## Equations ##
-# 1. Gas phase species balance
+# 1. Gas phase species balance ## (check if broadcasting is needed) ##
 # 2. Gas phase momentum balance
 # 3. Gas phase energy balance
 # 4. Catalyst phase species balance
 # 5. Catalyst phase energy balance
 
-eqs = [Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i * a_v * (C_c_i_surface - C_i),
+eqs = [Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i_surface - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
     C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c_surface - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_surface - C_i)),
-    Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) * Dr(C_c_i) + D_i_m * Drr(C_c_i) + r_i,
-    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m * Dr(C_c_i) * C_p_c_i * Dr(T_c))]
+    Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
+    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
 
 
-## Boundary conditions ## # should t be removed?
+## Boundary conditions ##
 # 1. T at reactor inlet
 # 2. C_i at reactor inlet
 # 3. P at reactor inlet
@@ -274,7 +274,7 @@ bcs = [T(0) ~ T_in,
     P(0) ~ P_in,
     Dz(T_c(z, 0)) ~ 0,
     Dz(C_c_i(z, 0)) ~ 0,
-    k_c_i * (C_c_i(z, 0.5 * D_cat) - C_i(z)) ~ (- D_i_m) * Dr(C_c_i(z, 0.5 * D_cat)),
+    k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z)) ~ (- D_i_m) .* Dr(C_c_i(z, 0.5 * D_cat)),
     h_f * (T_c(z, 0.5 * D_cat) - T(z)) + sum(H_i(z) .* k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z))) ~ (- λ_cat) * Dr(T_c(z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(z, 0.5 * D_cat)))]
 
 # ### Test functions ###
