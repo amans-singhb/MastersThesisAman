@@ -192,7 +192,7 @@ Dz = Differential(z)
 Dr = Differential(r)
 Drr = Differential(r)^2
 
-@register_symbolic F_fr_func # is this needed?
+@register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # is this needed?
 
 ## Parameters ##
 @parameters begin
