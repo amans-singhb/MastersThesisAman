@@ -196,7 +196,6 @@ Drr = Differential(r)^2
 
 ## Parameters ##
 @parameters begin
-    t
     z
     r
     # Gas phase species balance
@@ -219,7 +218,6 @@ Drr = Differential(r)^2
     k_c_i
     H_c_i_surface
     H_i
-
     # Catalyst phase species balance
     r_i
     # D_i_m # check how to solve this analytically
@@ -232,20 +230,19 @@ Drr = Differential(r)^2
 end
 
 
-## Variables ##
+## Variables ## # should t be removed?
 @variables begin
     # Gas phase species balance
-    C_i(t, z)
-    T(t, z)
-    P(t, z)
+    C_i(z)
+    T(z)
+    P(z)
     # Gas phase momentum balance
     # Gas phase energy balance
-
     # Catalyst phase species balance
-    C_c_i(t, z, r)
+    C_c_i(z, r)
     D_i_m # check how to solve this analytically
     # Catalyst phase energy balance
-    T_c(t, z, r)
+    T_c(z, r)
 end
  
 
@@ -262,6 +259,23 @@ eqs = [Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * 
     Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) * Dr(C_c_i) + D_i_m * Drr(C_c_i) + r_i,
     (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m * Dr(C_c_i) * C_p_c_i * Dr(T_c))]
 
+
+## Boundary conditions ## # should t be removed?
+# 1. T at reactor inlet
+# 2. C_i at reactor inlet
+# 3. P at reactor inlet
+# 4. dT_c/dz at catalyst center
+# 5. dC_c_i/dz at catalyst center
+# 6. conditions at catalyst surface
+# 7. conditions at catalyst surface
+
+bcs = [T(0) ~ T_in,
+    C_i(0) ~ C_i_in,
+    P(0) ~ P_in,
+    Dz(T_c(z, 0)) ~ 0,
+    Dz(C_c_i(z, 0)) ~ 0,
+    k_c_i * (C_c_i(z, 0.5 * D_cat) - C_i(z)) ~ (- D_i_m) * Dr(C_c_i(z, 0.5 * D_cat)),
+    h_f * (T_c(z, 0.5 * D_cat) - T(z)) + sum(H_i(z) .* k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z))) ~ (- λ_cat) * Dr(T_c(z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(z, 0.5 * D_cat)))]
 
 # ### Test functions ###
 
