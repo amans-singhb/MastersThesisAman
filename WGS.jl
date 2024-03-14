@@ -1,3 +1,13 @@
+### Defining nameing conventions and numeration ###
+
+# for species i and j have the following numeration:
+# 1 - CO
+# 2 - CO2
+# 3 - H2
+# 4 - H2O
+# 5 - N2
+
+
 ### Define functions for physical properties ###
 
 ## Diffusivity ##
@@ -17,7 +27,25 @@ end
 
 # Effective diffusivity of i in j ###[TESTED]###
 function D_eff_ij_func(D_ij, θ, τ)
-    D_ij * θ / τ
+    D_ij .* (θ / τ)
+end
+
+function D_i_m_vector_func2(y, D_eff_ij)
+    D_i_m_vec = zeros(size(y))
+
+    for i in eachindex(y)
+        denominator = 0
+        row = D_eff_ij[i, :]
+        for j in eachindex(y)
+            if j != i
+                denominator += y[j] / row[j]
+            end
+        end
+
+        D_i_m_vec[i] = (1-y[i]) / denominator
+    end
+
+    return D_i_m_vec
 end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
@@ -129,6 +157,60 @@ function λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
     return λ
 end
 
+
+### Functions specific for the system (values etc.) ###
+
+# 1 - CO
+# 2 - CO2
+# 3 - H2
+# 4 - H2O
+# 5 - N2
+
+# Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
+function D_ij_matrix_func(T, P)
+    D_ij_matrix = zeros(5, 5)
+    #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error)
+    p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
+        "a" 3 2 3.14e-5 1.75 1 0 11.7 0;
+        "b" 3 4 0 1.020 1 0 0 0;
+        "c" 3 5 6.007e-3 -0.99311 1 0 0 0;
+        "a" 1 2 3.15e-5 1.57 1 0 113.6 0;
+        "a" 1 4 0.187e-5 2.072 1 0 0 0;
+        "c" 1 5 0 0.322 1 0 0 0;
+        "a" 2 4 9.24e-5 1.5 1 0 307.9 0;
+        "a" 2 5 3.15e-5 1.57 1 0 113.6 0;
+        "a" 4 5 0.187e-5 2.072 1 0 0 0;]
+    
+    for row in eachrow(p)
+        i = row[2]
+        j = row[3]
+        if row[1] == "a"
+            D_ij_matrix[i, j] = D_ij_func_a(T, P, row[4], row[5], row[6], row[7], row[8], row[9])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        elseif row[1] == "b"
+            D_ij_matrix[i, j] = D_ij_func_b(P, row[5])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        elseif row[1] == "c"
+            D_ij_matrix[i, j] = D_ij_func_c(T, P, row[4], row[5])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        else
+            print("Invalid equation! Eq: ", row[1])
+            return
+        end
+    end
+    return D_ij_matrix
+end
+
+# Matrix of effective diffusivity of i in the mixture (SPECIFIC TO THE SYSTEM)
+function D_i_m_vector_func(y, D_eff_ij)
+    D_i_m_vec = zeros(size(y))
+
+    for i in eachindex(y)
+        D_i_m_vec[i] = D_i_m_func(y, i, D_eff_ij[i, :])
+    end
+
+    return D_i_m_vec
+end
 
 ### Supplementary functions for model equations ###
 
@@ -286,18 +368,20 @@ bcs = [T(0) ~ T_in,
 
 # μ_mix = μ_mix_func(y, μ_i, M)
 
-# ## Test D_eff_ij_func and D_i_m_func ##
-# theta = 0.8
-# tau = 1.0
-# y = [0.5, 0.3, 0.2]  
-# D_ij_A = [1.0e-5, 0.8e-5, 0.6e-5]  
-# D_eff_ij_A = zeros(length(D_ij_A))
+## Test D_eff_ij_func and D_i_m_func ##
+theta = 0.8
+tau = 1.0
+y = [0.2, 0.2, 0.2, 0.2, 0.2]
+D_ij_mat = D_ij_matrix_func(300, 1)
 
-# for i in eachindex(D_ij_A)
-#     D_eff_ij_A[i] = D_eff_ij_func(D_ij_A[i], theta, tau)
-# end
-# D_eff_ij_A 
-# D_i_m_A = D_i_m_func(y, 1, D_eff_ij_A)
+#D_eff_ij = zeros(size(D_ij_mat))
+
+D_eff_ij = D_eff_ij_func(D_ij_mat, theta, tau)
+
+D_i_m_1 = D_i_m_vector_func(y, D_eff_ij)
+D_i_m_2 = D_i_m_vector_func2(y, D_eff_ij)
+
+D_i_m_1 == D_i_m_2
 
 # ## Test C_p_func ##
 # y = [0.5, 0.3, 0.2]
