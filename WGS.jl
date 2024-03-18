@@ -367,34 +367,27 @@ Drr = Differential(r)^2
 @parameters begin
     z
     r
+
     # Gas phase species balance
-    α
-    k_c_i
-    a_v
-    C_c_i_surface
+    α # function, constant
+    a_v # function, constant
+    M
+    θ
+    τ
+    
     # Gas phase momentum balance
-    G
+    G # function, constant
     D_cat
-    ρ
-    ϵ_b
-    Re
+    ϵ_b # function, constant
+    
     # Gas phase energy balance
-    C_p # implementet as constant for now, check if it should be changed and how.
     R
-    h_f
-    a_v
-    T_c_surface
-    k_c_i
-    H_c_i_surface
-    H_i
+    
     # Catalyst phase species balance
-    r_i
-    # D_i_m # check how to solve this analytically
+    
     # Catalyst phase energy balance
     ρ_cat
     C_p_cat
-    θ
-    C_p_c_i
     λ_cat
 end
 
@@ -405,29 +398,51 @@ end
     C_i(z)
     T(z)
     P(z)
+
     # Gas phase momentum balance
+
     # Gas phase energy balance
+
     # Catalyst phase species balance
     C_c_i(z, r)
-    D_i_m # check how to solve this analytically
+
     # Catalyst phase energy balance
     T_c(z, r)
 end
  
 
 ## Equations ##
-# 1. Gas phase species balance ## (check if broadcasting is needed) ##
-# 2. Gas phase momentum balance
-# 3. Gas phase energy balance
-# 4. Catalyst phase species balance
-# 5. Catalyst phase energy balance
+# 21. Gas phase species balance ## (check if broadcasting is needed) ##
+# 22. Gas phase momentum balance
+# 23. Gas phase energy balance
+# 24. Catalyst phase species balance
+# 25. Catalyst phase energy balance
 
-eqs = [Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i_surface - C_i),
+eqs = [y ~ y_func(C_i),
+    D_ij ~ D_ij_matrix_func(T, P),
+    D_eff_ij ~ D_eff_ij_func(D_ij, θ, τ),
+    D_i_m ~ D_i_m_func(y, D_eff_ij),
+    ρ ~ ρ_func(P, T, R),
+    μ_i ~ μ_i_vector_funct(T),
+    μ ~ μ_mix_func(y, μ, M),
+    k_c_i ~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
+    u ~ u_func(α, T, P),
+    Re ~ Re_func(ρ, u, L, μ),
+    C_p_i ~ C_p_i_vector_func(T),
+    C_p ~ C_p_func(y, C_p_i),
+    λ_i ~ λ_i_vector_func(T),
+    λ_dash ~ λ_dash_func(y, λ_i, μ, M, T, T_boil, C),
+    λ ~ λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash),
+    h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
+    C_p_c_i ~ C_p_i_vector_func(T_c),
+    H_i ~ H_i_func(T),
+    H_c_i_surface ~ H_i_func(T_c(z, 0.5 * D_cat)),
+    r_i ~ r_i_func(y, d_cat, θ, P, T, R),
+    Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(z, 0.5 * D_cat) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c_surface - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_surface - C_i)),
+    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(z, 0.5 * D_cat) - C_i)),
     Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
     (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
-
 
 ## Boundary conditions ##
 # 1. T at reactor inlet
