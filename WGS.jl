@@ -418,7 +418,15 @@ bcs = [T(0) ~ T_in,
     k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z)) ~ (- D_i_m) .* Dr(C_c_i(z, 0.5 * D_cat)),
     h_f * (T_c(z, 0.5 * D_cat) - T(z)) + sum(H_i(z) .* k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z))) ~ (- λ_cat) * Dr(T_c(z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(z, 0.5 * D_cat)))]
 
-    # ### Test functions ###
+## Solving PDesystem ##
+domains = [z ∈ IntervalDomain(0.0, L),
+r ∈ IntervalDomain(0.0, D_cat)]
+
+# PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
+@named WGS_pde = PDESystem(eqs, bcs, domains, [z, r], [C_i, T, P, C_c_i, D_i_m, T_c], [α, k_c_i, a_v, C_c_i_surface, G, D_cat, ρ, ϵ_b, Re, C_p, R, h_f, a_v, T_c_surface, k_c_i, H_c_i_surface, H_i, r_i, ρ_cat, C_p_cat, θ, C_p_c_i, λ_cat])
+
+
+# ### Test functions ###
 
 # ## Test μ_mix_func ##
 # y = [0.5, 0.3, 0.2]
