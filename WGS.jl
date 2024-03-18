@@ -261,6 +261,34 @@ function F_fr_func(G, D_cat, ρ, ϵ_b, Re)
     (- G^2 / (ρ * D_cat)) * ((1 - ϵ_b) / ϵ_b^3) * (1.75 + 4.2 * ((1 - ϵ_b) / Re^(1/6)))   
 end
 
+# Molar density of the gas phase
+function ρ_func(P, T, R)
+    P / (R * T)
+end
+
+# Linear gas velocity
+function u_func(α, T, P)
+    α * (T / P)
+end
+
+# Molar fraction of i in the gas phase
+function y_func(C_i)
+    C_i / sum(C_i)
+end
+
+# Enthalpy of i
+using Quadrature, Cuba
+function H_i_func(T)
+    H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
+
+    prob = QuadratureProblem(C_p_i_vector_func, 0, T)
+    sol = solve(prob, CubaCuhre(), reltol=1e-6,abstol=1e-6)
+
+    H_i = H_form + sol[1]
+
+    return H_i
+end
+
 
 ### Correlations ###
 
