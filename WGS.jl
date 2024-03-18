@@ -72,7 +72,7 @@ function D_i_m_func(y, D_eff_ij)
     for i in eachindex(y)
         denominator = 0
         row = D_eff_ij[i, :]
-        
+
         for j in eachindex(y)
             if j != i
                 denominator += y[j] / row[j]
@@ -92,6 +92,24 @@ function C_p_i_func(T, A, B, C, D)
     A + B * T + C * T^2 + D / T^2
 end
 
+# Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
+function C_p_i_vector_func(T)
+    C_p_i_vector = zeros(5)
+    # p = [i, A, B, C, D]
+    p = [1 6.60 1.20e-3 0 0;
+        2 10.34 2.74e-3 0 -1.955e5;
+        3 6.62 0.81e-3 0 0;
+        4 8.22 0.15e-3 1.34e-6 0;
+        5 6.50 1.00e-3 0 0]
+    
+    for row in eachrow(p)
+        i = Int(row[1])
+        C_p_i_vector[i] = C_p_i_func(T, row[2], row[3], row[4], row[5])
+    end
+
+    return C_p_i_vector
+end
+
 # Heat capacity of mixture ###[TESTED]###
 function C_p_func(y, C_p_i)
     sum(y .* C_p_i)
@@ -102,6 +120,24 @@ end
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
 function μ_i_func(T, A, B, C, D)
     (A * T^B) / (1 + C / T + D / T^2)
+end
+
+# Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
+function μ_i_vector_funct(T)
+    μ_i_vector = zeros(5)
+    # p = [i, A, B, C, D]
+    p = [1 1.1127e-6 0.5338 94.7 0;
+        2 2.148e-6 0.46 290 0;
+        3 1.797e-7 0.685 -0.59 140;
+        4 1.7096e-8 1.1146 0 0;
+        5 6.5592e-7 0.6081 54.714 0]
+    
+    for row in eachrow(p)
+        i = Int(row[1])
+        μ_i_vector[i] = μ_i_func(T, row[2], row[3], row[4], row[5])
+    end
+
+    return μ_i_vector
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
@@ -125,6 +161,24 @@ end
 # Thermal conductivity of gas phase of species i {T [K], λ [kcal/h m K]}
 function λ_i_func(T, A, B, C, D)
     (A * T^B) / (1 + C / T + D / T^2)
+end
+
+# Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
+function λ_i_vector_func(T)
+    λ_i_vector = zeros(5)
+    # p = [i, A, B, C, D]
+    p = [1 5.1489e-4 0.6863 57.13 501.92;
+        2 3.1728 -0.3838 964 1.86e6;
+        3 2.2811e-3 0.7452 12 0;
+        4 5.3345e-6 1.3973 0 0;
+        5 2.8497e-4 0.7722 16.323 373.72]
+
+    for row in eachrow(p)
+        i = Int(row[1])
+        λ_i_vector[i] = λ_i_func(T, row[2], row[3], row[4], row[5])
+    end
+
+    return λ_i_vector
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
@@ -339,20 +393,18 @@ bcs = [T(0) ~ T_in,
 
 # μ_mix = μ_mix_func(y, μ_i, M)
 
-## Test D_eff_ij_func and D_i_m_func ##
-theta = 0.8
-tau = 1.0
-y = [0.2, 0.2, 0.2, 0.2, 0.2]
-D_ij_mat = D_ij_matrix_func(300, 1)
+# ## Test D_eff_ij_func and D_i_m_func ##
+# theta = 0.8
+# tau = 1.0
+# y = [0.2, 0.2, 0.2, 0.2, 0.2]
+# D_ij_mat = D_ij_matrix_func(300, 1)
 
-#D_eff_ij = zeros(size(D_ij_mat))
+# #D_eff_ij = zeros(size(D_ij_mat))
 
-D_eff_ij = D_eff_ij_func(D_ij_mat, theta, tau)
+# D_eff_ij = D_eff_ij_func(D_ij_mat, theta, tau)
 
-D_i_m_1 = D_i_m_vector_func(y, D_eff_ij)
-D_i_m_2 = D_i_m_vector_func2(y, D_eff_ij)
+# D_i_m = D_i_m_func(y, D_eff_ij)
 
-D_i_m_1 == D_i_m_2
 
 # ## Test C_p_func ##
 # y = [0.5, 0.3, 0.2]
