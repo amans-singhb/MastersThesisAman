@@ -426,6 +426,12 @@ r ∈ IntervalDomain(0.0, D_cat)]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [z, r], [C_i, T, P, C_c_i, D_i_m, T_c], [α, k_c_i, a_v, C_c_i_surface, G, D_cat, ρ, ϵ_b, Re, C_p, R, h_f, a_v, T_c_surface, k_c_i, H_c_i_surface, H_i, r_i, ρ_cat, C_p_cat, θ, C_p_c_i, λ_cat])
 
 
+# Discretization
+dz = 0.1
+dr = 0.1
+order = 2
+discretization = MOLFiniteDifference([z => dz, r => dr], t)
+
 # ### Test functions ###
 
 # ## Test μ_mix_func ##
