@@ -432,6 +432,9 @@ dr = 0.1
 order = 2
 discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
+# Converting PDE to ODE with MOL
+prob = discretize(WGS_pde, discretization)
+
 # ### Test functions ###
 
 # ## Test μ_mix_func ##
