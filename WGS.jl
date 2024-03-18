@@ -365,6 +365,7 @@ Drr = Differential(r)^2
 
 ## Parameters ##
 @parameters begin
+    t
     z
     r
 
@@ -395,19 +396,19 @@ end
 ## Variables ##
 @variables begin
     # Gas phase species balance
-    C_i(z)
-    T(z)
-    P(z)
+    C_i(t, z)
+    T(t, z)
+    P(t, z)
 
     # Gas phase momentum balance
 
     # Gas phase energy balance
 
     # Catalyst phase species balance
-    C_c_i(z, r)
+    C_c_i(t, z, r)
 
     # Catalyst phase energy balance
-    T_c(z, r)
+    T_c(t, z, r)
 end
  
 
@@ -453,8 +454,8 @@ eqs = [y ~ y_func(C_i),
 # 6. conditions at catalyst surface
 # 7. conditions at catalyst surface
 
-bcs = [T(0) ~ T_in,
-    C_i(0) ~ C_i_in,
+bcs = [T(t, 0) ~ T_in,
+    C_i(t, 0) ~ C_i_in,
     P(0) ~ P_in,
     Dz(T_c(z, 0)) ~ 0,
     Dz(C_c_i(z, 0)) ~ 0,
