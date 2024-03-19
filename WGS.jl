@@ -476,25 +476,58 @@ bcs = [T(t, 0) ~ T_in,
 
 using DifferentialEquations, DomainSets, MethodOfLines
 
-## Solving PDesystem ##
-domains = [z ∈ IntervalDomain(0.0, L),
-r ∈ IntervalDomain(0.0, D_cat)]
+### Solving PDesystem ###
+function main()
+    # Define and calculate parameters
+    F_0 = 1.0
+    L = 1.0
+    R = 8.314
+    D_rct = 0.1
+    D_cat = 0.1
 
-# PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [C_i, T, P, C_c_i, T_c], [α, a_v, M, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, T_cr, P_cr, Z_cr, ρ_r, C, d_cat, ρ_cat, C_p_cat, λ_cat, T_in, C_i_in, P_in])
+    T_boil = 373.15
+
+    T_cr = 298.15
+    P_cr = 1.0
+    Z_cr = 1.0
+    ρ_r = 1.0
+    C = 1.0
+
+    d_cat = 0.01
+    ρ_cat = 1.0
+    C_p_cat = 1.0
+    λ_cat = 1.0
+
+    T_in = 300.0
+    C_i_in = 1.0
+    P_in = 1.0    
+   
+
+    α = α_func(G, R)
+    ϵ_b = ϵ_b_func(D_rct, D_cat)
+    G = G_func(F_0, D_rct, ϵ_b)
+    a_v = a_v_func(ϵ_b, D_cat)
+
+    domains = [z ∈ IntervalDomain(0.0, L),
+    r ∈ IntervalDomain(0.0, D_cat)]
+
+    # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
+    @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [C_i, T, P, C_c_i, T_c], [α, a_v, M, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, T_cr, P_cr, Z_cr, ρ_r, C, d_cat, ρ_cat, C_p_cat, λ_cat, T_in, C_i_in, P_in])
 
 
-# Discretization
-dz = 0.1
-dr = 0.1
-order = 2
-discretization = MOLFiniteDifference([z => dz, r => dr], t)
+    # Discretization
+    dz = 0.1
+    dr = 0.1
+    order = 2
+    discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
-# Converting PDE to ODE with MOL
-prob = discretize(WGS_pde, discretization)
+    # Converting PDE to ODE with MOL
+    prob = discretize(WGS_pde, discretization)
 
-# Solving ODE
-sol = solve(prob, Tsit5(), saveat=0.1)
+    # Solving ODE
+    sol = solve(prob, Tsit5(), saveat=0.1)
+end
+
 
 # ### Test functions ###
 
