@@ -478,17 +478,27 @@ using DifferentialEquations, DomainSets, MethodOfLines
 
 ### Solving PDesystem ###
 function main()
-    # Define and calculate parameters
-    F_0 = 1.0
-    L = 1.0
-    R = 8.314
-    D_rct = 0.1
-    D_cat = 0.1
-    M = 
-    θ =
-    τ =
+    ## Define and calculate parameters ##
 
-    T_boil = 373.15
+    # Variable
+    F_0 = 10 # [mol/h]
+    
+    R = 8.314 # [J/mol K]
+
+    T_in = 473 # [K] 200 C
+    C_i_in = [2.749, 1.198, 2.686, 3.165, 0.202] 
+    P_in = 1.3 # [atm] 
+
+    D_cat = 0.25 # [mm]
+    D_rct = 12.7 # [mm]
+    L = 4.8 # [mm]
+
+    # Fixed
+    M = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
+    θ = 0.55
+    τ = 5
+
+    T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
 
     T_cr = 298.15
     P_cr = 1.0
@@ -496,14 +506,12 @@ function main()
     ρ_r = 1.0
     C = 1.0
 
-    d_cat = 0.01
+    d_cat = 5904 # [kg/m^3]
     ρ_cat = 1.0
     C_p_cat = 1.0
     λ_cat = 1.0
 
-    T_in = 300.0
-    C_i_in = 1.0
-    P_in = 1.0    
+       
    
 
     α = α_func(G, R)
