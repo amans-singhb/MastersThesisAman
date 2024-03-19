@@ -484,6 +484,9 @@ function main()
     R = 8.314
     D_rct = 0.1
     D_cat = 0.1
+    M = 
+    θ =
+    τ =
 
     T_boil = 373.15
 
