@@ -277,14 +277,15 @@ function y_func(C_i)
 end
 
 # Enthalpy of i
-using Quadrature, Cuba
+using Integrals, Cuba
 function H_i_func(T)
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
-    prob = QuadratureProblem(C_p_i_vector_func, 0, T)
-    sol = solve(prob, CubaCuhre(), reltol=1e-6,abstol=1e-6)
+    domain = (298, T)
+    prob = IntegralProblem(C_p_i_vector_func, domain)
+    sol = solve(prob, CubaCuhre(); reltol=1e-6,abstol=1e-6)
 
-    H_i = H_form + sol[1]
+    H_i = H_form + sol.u
 
     return H_i
 end
