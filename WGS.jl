@@ -318,7 +318,7 @@ end
 
 
 ### Define model equations ###
-using ModelingToolkit, DifferentialEquations, DomainSets, MethodOfLines
+using ModelingToolkit
 
 ## Differential ##
 Dt = Differential(t)
@@ -348,8 +348,8 @@ Drr = Differential(r)^2
 @register_symbolic λ_dash_func(y, λ_i, μ, M, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash) # added to eqs #
 
-@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
-@register_symbolic α_func(G, R) # constant
+#@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
+#@register_symbolic α_func(G, R) # constant
 @register_symbolic Re_func(ρ, u, L, μ) # added to eqs #
 @register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # added to eqs #
 @register_symbolic ρ_func(P, T, R) # added to eqs #
@@ -360,8 +360,8 @@ Drr = Differential(r)^2
 
 @register_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) # added to eqs #
 @register_symbolic h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ) # added to eqs #
-@register_symbolic ϵ_b_func(D_rct, D_cat) # constant
-@register_symbolic a_v_func(ϵ_b, D_cat) # constant
+#@register_symbolic ϵ_b_func(D_rct, D_cat) # constant
+#@register_symbolic a_v_func(ϵ_b, D_cat) # constant
 
 ## Parameters ##
 @parameters begin
@@ -471,12 +471,17 @@ bcs = [T(t, 0) ~ T_in,
     k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) ~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
     h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
 
+
+
+
+using DifferentialEquations, DomainSets, MethodOfLines
+
 ## Solving PDesystem ##
 domains = [z ∈ IntervalDomain(0.0, L),
 r ∈ IntervalDomain(0.0, D_cat)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [z, r], [C_i, T, P, C_c_i, D_i_m, T_c], [α, k_c_i, a_v, C_c_i_surface, G, D_cat, ρ, ϵ_b, Re, C_p, R, h_f, a_v, T_c_surface, k_c_i, H_c_i_surface, H_i, r_i, ρ_cat, C_p_cat, θ, C_p_c_i, λ_cat])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [C_i, T, P, C_c_i, T_c], [α, a_v, M, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, T_cr, P_cr, Z_cr, ρ_r, C, d_cat, ρ_cat, C_p_cat, λ_cat, T_in, C_i_in, P_in])
 
 
 # Discretization
@@ -487,6 +492,9 @@ discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
+
+# Solving ODE
+sol = solve(prob, Tsit5(), saveat=0.1)
 
 # ### Test functions ###
 
