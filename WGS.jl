@@ -9,6 +9,8 @@
 
 
 ### Define functions for physical properties ###
+using Symbolics
+using ModelingToolkit
 
 ## Diffusivity ##
 
@@ -71,7 +73,8 @@ function D_i_m_func(y, D_eff_ij)
 
     for i in eachindex(y)
         denominator = 0
-        row = D_eff_ij[i, :]
+        index = i[1]
+        row = D_eff_ij[index, :]
 
         for j in eachindex(y)
             if j != i
@@ -79,7 +82,7 @@ function D_i_m_func(y, D_eff_ij)
             end
         end
 
-        D_i_m_vec[i] = (1-y[i]) / denominator
+        D_i_m_vec[i] ~ (1-y[i]) / denominator
     end
 
     return D_i_m_vec
@@ -141,11 +144,11 @@ function μ_i_vector_funct(T)
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
-function μ_mix_func(y, μ, M)
+function μ_mix_func(y, μ_i, M)
     μ_mix = 0
 
     for i in eachindex(y)
-        numerator = y[i] * μ[i]
+        numerator = y[i] * μ_i[i]
         denominator = 0
         for j in eachindex(y)
             denominator += y[j] * sqrt(M[j] / M[i])
@@ -297,7 +300,7 @@ end
 
 # Mass transfer coefficient
 function k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
-    0.357 * ((ρ * M * D_i_m) / μ)^(2/3) * (G / (ρ * M * ϵ_b)) * (μ / (D_cat * G))^0.359
+    0.357 * ((ρ * M .* D_i_m) / μ).^(2/3) * (G / (ρ * M * ϵ_b)) * (μ / (D_cat * G))^0.359
 end
 
 # Heat transfer coefficient
@@ -319,7 +322,6 @@ end
 
 
 ### Define model equations ###
-using ModelingToolkit
 
 ## Registering symbolic functions ## (Double check if all are needed)
 @register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
@@ -335,7 +337,7 @@ using ModelingToolkit
 
 @register_symbolic μ_i_func(T, A, B, C, D) # added to eqs #
 @register_symbolic μ_i_vector_funct(T) # added to eqs #
-@register_symbolic μ_mix_func(y, μ, M) # added to eqs #
+@register_symbolic μ_mix_func(y, μ_i, M) # added to eqs #
 
 @register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
 @register_symbolic λ_i_vector_func(T) # added to eqs #
@@ -563,6 +565,7 @@ function main()
 end
 
 main()
+
 
 # ### Test functions ###
 
