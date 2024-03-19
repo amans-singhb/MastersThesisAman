@@ -372,7 +372,7 @@ Drr = Differential(r)^2
     # Gas phase species balance
     α # function, constant
     a_v # function, constant
-    M
+    M[1:5]
     θ
     τ
     
@@ -380,12 +380,20 @@ Drr = Differential(r)^2
     G # function, constant
     D_cat
     ϵ_b # function, constant
-    
+    L
+
     # Gas phase energy balance
     R
+    T_boil[1:5]
+    T_cr
+    P_cr
+    Z_cr
+    ρ_r
+    C
     
     # Catalyst phase species balance
-    
+    d_cat
+
     # Catalyst phase energy balance
     ρ_cat
     C_p_cat
@@ -396,7 +404,8 @@ end
 ## Variables ##
 @variables begin
     # Gas phase species balance
-    C_i(t, z)
+    y(t, z, r)[1:5]
+    C_i(t, z)[1:5]
     T(t, z)
     P(z)
 
@@ -405,7 +414,7 @@ end
     # Gas phase energy balance
 
     # Catalyst phase species balance
-    C_c_i(t, z, r)
+    C_c_i(t, z, r)[1:5]
 
     # Catalyst phase energy balance
     T_c(t, z, r)
