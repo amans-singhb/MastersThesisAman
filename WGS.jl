@@ -321,12 +321,6 @@ end
 ### Define model equations ###
 using ModelingToolkit
 
-## Differential ##
-Dt = Differential(t)
-Dz = Differential(z)
-Dr = Differential(r)
-Drr = Differential(r)^2
-
 ## Registering symbolic functions ## (Double check if all are needed)
 @register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
 @register_symbolic D_ij_func_b(P, B) # added to eqs #
@@ -401,6 +395,11 @@ Drr = Differential(r)^2
     λ_cat
 end
 
+## Differential ##
+Dt = Differential(t)
+Dz = Differential(z)
+Dr = Differential(r)
+Drr = Differential(r)^2
 
 ## Variables ##
 @variables begin
