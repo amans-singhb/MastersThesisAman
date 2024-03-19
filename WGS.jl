@@ -247,7 +247,7 @@ function G_func(F_0, D_rct, ϵ_b)
 end
 
 # Alpha (momentum balance term)
-function α_func(G)
+function α_func(G, R)
     G * R
 end
 
@@ -398,7 +398,7 @@ end
     # Gas phase species balance
     C_i(t, z)
     T(t, z)
-    P(t, z)
+    P(z)
 
     # Gas phase momentum balance
 
@@ -437,11 +437,11 @@ eqs = [y ~ y_func(C_i),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
     C_p_c_i ~ C_p_i_vector_func(T_c),
     H_i ~ H_i_func(T),
-    H_c_i_surface ~ H_i_func(T_c(z, 0.5 * D_cat)),
+    H_c_i_surface ~ H_i_func(T_c(t, z, 0.5 * D_cat)),
     r_i ~ r_i_func(y, d_cat, θ, P, T, R),
-    Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(z, 0.5 * D_cat) - C_i),
+    Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(z, 0.5 * D_cat) - C_i)),
+    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
     Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
     (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
 
@@ -457,10 +457,10 @@ eqs = [y ~ y_func(C_i),
 bcs = [T(t, 0) ~ T_in,
     C_i(t, 0) ~ C_i_in,
     P(0) ~ P_in,
-    Dz(T_c(z, 0)) ~ 0,
-    Dz(C_c_i(z, 0)) ~ 0,
-    k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z)) ~ (- D_i_m) .* Dr(C_c_i(z, 0.5 * D_cat)),
-    h_f * (T_c(z, 0.5 * D_cat) - T(z)) + sum(H_i(z) .* k_c_i .* (C_c_i(z, 0.5 * D_cat) - C_i(z))) ~ (- λ_cat) * Dr(T_c(z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(z, 0.5 * D_cat)))]
+    Dz(T_c(t, z, 0)) ~ 0,
+    Dz(C_c_i(t, z, 0)) ~ 0,
+    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) ~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
+    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
 
 ## Solving PDesystem ##
 domains = [z ∈ IntervalDomain(0.0, L),
