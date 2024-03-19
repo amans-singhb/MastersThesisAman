@@ -420,25 +420,25 @@ Drr = Differential(r)^2
     T_c(t, z, r)
 
     # Other
-    D_ij(T, P)
-    D_eff_ij(D_ij, θ, τ)
-    D_i_m(y, D_eff_ij)
+    D_ij(T, P)[1:5, 1:5]
+    D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
+    D_i_m(y, D_eff_ij)[1:5]
     ρ(P, T, R)
-    μ_i(T)
+    μ_i(T)[1:5]
     μ(y, μ_i, M)
-    k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
+    k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)[1:5]
     u(α, T, P)
     Re(ρ, u, L, μ)
-    C_p_i(T)
+    C_p_i(T)[1:5]
     C_p(y, C_p_i)
-    λ_i(T)
+    λ_i(T)[1:5]
     λ_dash(y, λ_i, μ, M, T, T_boil, C)
     λ(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
     h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
-    C_p_c_i(T_c)
-    H_i(T)
-    H_c_i_surface(T_c)
-    r_i(y, d_cat, θ, P, T, R)
+    C_p_c_i(T_c)[1:5]
+    H_i(T)[1:5]
+    H_c_i_surface(T_c)[1:5]
+    r_i(y, d_cat, θ, P, T, R)[1:5]
 end
  
 
@@ -483,9 +483,9 @@ function main()
        
    
 
-    α = α_func(G, R)
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F_0, D_rct, ϵ_b)
+    α = α_func(G, R)
     a_v = a_v_func(ϵ_b, D_cat)
 
     ## Equations ##
@@ -495,31 +495,31 @@ function main()
     # 24. Catalyst phase species balance
     # 25. Catalyst phase energy balance
 
-    eqs = [y ~ y_func(C_i),
-    D_ij ~ D_ij_matrix_func(T, P),
-    D_eff_ij ~ D_eff_ij_func(D_ij, θ, τ),
-    D_i_m ~ D_i_m_func(y, D_eff_ij),
+    eqs = [y .~ y_func(C_i),
+    D_ij .~ D_ij_matrix_func(T, P),
+    D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ),
+    D_i_m .~ D_i_m_func(y, D_eff_ij),
     ρ ~ ρ_func(P, T, R),
-    μ_i ~ μ_i_vector_funct(T),
+    μ_i .~ μ_i_vector_funct(T),
     μ ~ μ_mix_func(y, μ_i, M),
-    k_c_i ~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
+    k_c_i .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
     u ~ u_func(α, T, P),
     Re ~ Re_func(ρ, u, L, μ),
-    C_p_i ~ C_p_i_vector_func(T),
+    C_p_i .~ C_p_i_vector_func(T),
     C_p ~ C_p_func(y, C_p_i),
-    λ_i ~ λ_i_vector_func(T),
+    λ_i .~ λ_i_vector_func(T),
     λ_dash ~ λ_dash_func(y, λ_i, μ, M, T, T_boil, C),
     λ ~ λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    C_p_c_i ~ C_p_i_vector_func(T_c),
-    H_i ~ H_i_func(T),
-    H_c_i_surface ~ H_i_func(T_c(t, z, 0.5 * D_cat)),
-    r_i ~ r_i_func(y, d_cat, θ, P, T, R),
-    Dt(C_i) ~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
+    C_p_c_i .~ C_p_i_vector_func(T_c),
+    H_i .~ H_i_func(T),
+    H_c_i_surface .~ H_i_func(T_c(t, z, 0.5 * D_cat)),
+    r_i .~ r_i_func(y, d_cat, θ, P, T, R),
+    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
     C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
-    Dt(C_c_i) ~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
-    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) ~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
+    Dt(C_c_i) .~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
+    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) .~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
 
     ## Boundary conditions ##
     # 1. T at reactor inlet
@@ -531,12 +531,12 @@ function main()
     # 7. conditions at catalyst surface
 
     bcs = [T(t, 0) ~ T_in,
-    C_i(t, 0) ~ C_i_in,
+    C_i(t, 0) .~ C_i_in,
     P(0) ~ P_in,
     Dz(T_c(t, z, 0)) ~ 0,
-    Dz(C_c_i(t, z, 0)) ~ 0,
-    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) ~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
-    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
+    Dz(C_c_i(t, z, 0)) .~ 0,
+    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
+    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
 
     # Domain
     domains = [z ∈ IntervalDomain(0.0, L),
@@ -562,6 +562,7 @@ function main()
     writedlm("WGS_results.csv", sol, ",")
 end
 
+main()
 
 # ### Test functions ###
 
