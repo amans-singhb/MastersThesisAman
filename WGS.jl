@@ -185,7 +185,7 @@ function λ_i_vector_func(T)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
-function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
+function A_ij_func(i, j, μ_i::Symbolics.Arr{Num, 5}, M_i::Symbolics.Arr{Num, 5}, T, T_boil::Symbolics.Arr{Num, 5}, C)
     if i == j
         return 1.0
     else
@@ -203,9 +203,11 @@ function λ_dash_func(y, λ, μ_i, M_i, T, T_boil, C)
     λ_dash = 0
 
     for i in eachindex(y)
+        i = Int(i[1])
         numerator = y[i] * λ[i]
         denominator = 0
         for j in eachindex(y)
+            j = Int(j[1])
             denominator += y[j] * A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
         end
         λ_dash += numerator / denominator
@@ -233,20 +235,20 @@ function λ_func(y, T, P, R, M, λ_dash)
     Z_cr = (P_cr * V_cr) / (R * T_cr)
 
     # Define constants A, B and C based on ρ_r
-    if ρ_r < 0.5
+    if ρ_r_val < 0.5
         A = 2.702e-4
         B = 0.535
         C = -1.000
-    elseif ρ_r >= 0.5 && ρ_r < 2.0 # added >= to include 0.5
+    elseif ρ_r_val >= 0.5 && ρ_r < 2.0 # added >= to include 0.5
         A = 2.528e-4
         B = 0.670
         C = -1.069
-    elseif ρ_r >= 2.0 && ρ_r < 2.8 # added >= to include 2.0
+    elseif ρ_r_val >= 2.0 && ρ_r < 2.8 # added >= to include 2.0
         A = 0.574e-4
         B = 1.155
         C = 2.016
     else
-        print("Error: ρ_r not in range, ρ_r = ", ρ_r)
+        print("Error: ρ_r not in range, ρ_r = ", ρ_r_val)
         return
     end
 
@@ -478,17 +480,13 @@ function main()
         C_i(t, z)[1:5]
         T(t, z)
         P(z)
-
-        # Gas phase momentum balance
-
-        # Gas phase energy balance
-
+    
         # Catalyst phase species balance
         C_c_i(t, z, r)[1:5]
-
+    
         # Catalyst phase energy balance
         T_c(t, z, r)
-
+    
         # Other
         M(y)
         D_ij(T, P)[1:5, 1:5]
@@ -504,7 +502,7 @@ function main()
         C_p(y, C_p_i)
         λ_i(T)[1:5]
         λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
-        λ(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
+        λ(y, T, P, R, M, λ_dash)
         h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
         C_p_c_i(T_c)[1:5]
         H_i(T)[1:5]
@@ -533,7 +531,7 @@ function main()
     C_p_i .~ C_p_i_vector_func(T),
     C_p ~ C_p_func(y, C_p_i),
     λ_i .~ λ_i_vector_func(T),
-    λ_dash ~ λ_dash_func(y, λ_i, μ, M_i, T, T_boil, C),
+    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C),
     λ ~ λ_func(y, T, P, R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
     C_p_c_i .~ C_p_i_vector_func(T_c),
@@ -568,7 +566,7 @@ function main()
     r ∈ IntervalDomain(0.0, D_cat)]
 
     # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-    @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [C_i, T, P, C_c_i, T_c], [α, a_v, M, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, T_cr, P_cr, Z_cr, ρ_r, C, d_cat, ρ_cat, C_p_cat, λ_cat, T_in, C_i_in, P_in])
+    @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i, T, P, C_c_i, T_c, M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α, a_v, M_i, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, C, d_cat, ρ_cat, C_p_cat, λ_cat])
 
 
     # Discretization
