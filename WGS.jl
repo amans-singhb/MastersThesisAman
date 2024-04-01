@@ -294,9 +294,10 @@ function H_i_func(T)
 end
 
 # Reaction rate of if
-function r_i_func(y, d_cat, θ, P, T, R)
+function r_i_func(y, d_cat, θ, P, T)
+    R_joule = 8.314
     K_eq = exp((4577.8 / T) - 4.33)
-    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
+    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R_joule * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
 
     r_i = [-r_co_min, -r_co_min, r_co_min, r_co_min, 0]
 
@@ -362,7 +363,7 @@ end
 @register_symbolic u_func(α, T, P) # added to eqs #
 @register_symbolic y_func(C_i) # added to eqs #
 @register_symbolic H_i_func(T) # added to eqs #
-@register_symbolic r_i_func(y, d_cat, θ, P, T, R) # added to eqs #
+@register_symbolic r_i_func(y, d_cat, θ, P, T) # added to eqs #
 
 @register_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) # added to eqs #
 @register_symbolic h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ) # added to eqs #
@@ -381,7 +382,9 @@ function main()
     F_0 = 10 # [mol/h]
     
     R_joule = 8.314 # [J/mol K]
-    R_atm = 8.314 # [J/mol K]
+    R_atmL = 0.082057 # [L atm/mol K]
+    R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
+
 
     T_in = 473 # [K] 200 C
     C_i_in = [2.749, 1.198, 2.686, 3.165, 0.202] #wrong
@@ -523,7 +526,7 @@ function main()
     C_p_c_i .~ C_p_i_vector_func(T_c),
     H_i .~ H_i_func(T),
     H_c_i_surface .~ H_i_func(T_c(t, z, 0.5 * D_cat)),
-    r_i .~ r_i_func(y, d_cat, θ, P, T, R),
+    r_i .~ r_i_func(y, d_cat, θ, P, T),
     Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
     C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
