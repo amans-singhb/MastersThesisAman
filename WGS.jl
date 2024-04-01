@@ -385,10 +385,12 @@ function main()
     R_atmL = 0.082057 # [L atm/mol K]
     R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
 
-
     T_in = 473 # [K] 200 C
-    C_i_in = [2.749, 1.198, 2.686, 3.165, 0.202] #wrong
-    P_in = 1.3 # [atm] 
+    P_in = 1.3 # [atm]
+    
+    y_0 = [0.2749, 0.1198, 0.2686, 0.3165, 0.0202]
+    V_flow_0 = (F_0 * R_atmm3 * T_in) / P_in # [m3/h]
+    C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
 
     D_cat = 0.25e-3 # [m]
     D_rct = 12.7e-3 # [m]
