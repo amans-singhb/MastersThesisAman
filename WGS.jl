@@ -215,7 +215,23 @@ function λ_dash_func(y, λ, μ_i, M, T, T_boil, C)
 end
 
 # Thermal conductivity of the bulk mixture above atmospheric pressure ###[TESTED]###
-function λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
+function λ_func(y, T, P, R, M, λ_dash)
+    # Define critical properties for each species in the mixture (T_cr_i [K] and P_cr_i [atm])
+    T_cr_i = [133, 304.12, 32.97, 647.14, 126.21] # [K] (Taken from Wolfram Alpha)
+    P_cr_i = [3.5, 7.39, 1.293, 22.406, 3.39] * 9.869 # [atm] (Taken from Wolfram Alpha, originally in MPa)
+
+    # Use Kay's rule to calculate pseudocritical properties for the mixture (making the assumption that this will give acceptable results)
+    T_cr = sum(y .* T_cr_i)
+    P_cr = sum(y .* P_cr_i)
+
+    # Calculate critical molar volume, molar volume for the mixture and the reduced density
+    V_cr = R * T_cr / P_cr
+    V = R * T / P
+    ρ_r = V_cr / V
+
+    # Calculate compressibility factor Z_cr for the mixture
+    Z_cr = (P_cr * V_cr) / (R * T_cr)
+
     # Define constants A, B and C based on ρ_r
     if ρ_r < 0.5
         A = 2.702e-4
@@ -353,7 +369,7 @@ end
 @register_symbolic λ_i_vector_func(T) # added to eqs #
 @register_symbolic A_ij_func(i, j, μ_i, M, T, T_boil, C) # added to eqs #
 @register_symbolic λ_dash_func(y, λ_i, μ_i, M, T, T_boil, C) # added to eqs #
-@register_symbolic λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash) # added to eqs #
+@register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
 
 #@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
 #@register_symbolic α_func(G, R) # constant
@@ -404,10 +420,6 @@ function main()
 
     T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
 
-    T_cr = 298.15
-    P_cr = 1.0
-    Z_cr = 1.0
-    ρ_r = 1.0
     C = 1.0
 
     d_cat = 5904 # [kg/m^3]
@@ -442,10 +454,6 @@ function main()
         # Gas phase energy balance
         R
         T_boil[1:5]
-        T_cr
-        P_cr
-        Z_cr
-        ρ_r
         C
         
         # Catalyst phase species balance
@@ -524,7 +532,7 @@ function main()
     C_p ~ C_p_func(y, C_p_i),
     λ_i .~ λ_i_vector_func(T),
     λ_dash ~ λ_dash_func(y, λ_i, μ, M, T, T_boil, C),
-    λ ~ λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash),
+    λ ~ λ_func(y, T, P, R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
     C_p_c_i .~ C_p_i_vector_func(T_c),
     H_i .~ H_i_func(T),
@@ -623,8 +631,7 @@ main()
 
 # λ_dash = λ_dash_func(y_list, k_list, μ_list, M_list, T_example, T_boil_list, 1.0)
 
-# ## Test λ_func ##
-# T_c = 304.2
+# ## Test λ_func ## 
 # M = 44.01
 # P_c = 7.383
 # V_c = 0.0940
@@ -635,6 +642,6 @@ main()
 # ρ = V_c/V
 # # ρ1 = 0.4121
 
-# λ_test = λ_func(T_c, P_c, Z_c1, 0.5, M, k_dash)
+# λ_test = λ_func(y, T, P, R, M, k_dash)
 
 
