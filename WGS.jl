@@ -384,6 +384,7 @@ function main()
     R_joule = 8.314 # [J/mol K]
     R_atmL = 0.082057 # [L atm/mol K]
     R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
+    R = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
 
     T_in = 473 # [K] 200 C
     P_in = 1.3 # [atm]
