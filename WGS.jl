@@ -293,6 +293,15 @@ function H_i_func(T)
     return H_i
 end
 
+# Reaction rate of if
+function r_i_func(y, d_cat, θ, P, T, R)
+    K_eq = exp((4577.8 / T) - 4.33)
+    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
+
+    r_i = [-r_co_min, -r_co_min, r_co_min, r_co_min, 0]
+
+    return r_i
+end
 
 ### Correlations ###
 
@@ -371,20 +380,21 @@ function main()
     # Variable
     F_0 = 10 # [mol/h]
     
-    R = 8.314 # [J/mol K]
+    R_joule = 8.314 # [J/mol K]
+    R_atm = 8.314 # [J/mol K]
 
     T_in = 473 # [K] 200 C
-    C_i_in = [2.749, 1.198, 2.686, 3.165, 0.202] 
+    C_i_in = [2.749, 1.198, 2.686, 3.165, 0.202] #wrong
     P_in = 1.3 # [atm] 
 
-    D_cat = 0.25 # [mm]
-    D_rct = 12.7 # [mm]
-    L = 4.8 # [mm]
+    D_cat = 0.25e-3 # [m]
+    D_rct = 12.7e-3 # [m]
+    L = 4.8e-3 # [m]
 
     # Fixed
     M = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
-    θ = 0.55
-    τ = 5
+    θ = 0.55 #[-]
+    τ = 5 #[-]
 
     T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
 
