@@ -29,7 +29,7 @@ end
 
 # Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
 function D_ij_matrix_func(T, P)
-    D_ij_matrix = zeros(5, 5)
+    D_ij_matrix = Matrix{Num}(undef, 5, 5)
     #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error)
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
         "a" 3 2 3.14e-5 1.75 1 0 11.7 0;
@@ -69,7 +69,7 @@ end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
 function D_i_m_func(y, D_eff_ij)
-    D_i_m_vec = zeros(size(y))
+    D_i_m_vec = Vector{Num}(undef, 5)
 
     for i in eachindex(y)
         denominator = 0
@@ -82,7 +82,7 @@ function D_i_m_func(y, D_eff_ij)
             end
         end
 
-        D_i_m_vec[i] ~ (1-y[i]) / denominator
+        D_i_m_vec[i] = (1-y[i]) / denominator
     end
 
     return D_i_m_vec
@@ -97,7 +97,7 @@ end
 
 # Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
 function C_p_i_vector_func(T)
-    C_p_i_vector = zeros(5)
+    C_p_i_vector = Vector{Num}(undef, 5)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
@@ -127,7 +127,7 @@ end
 
 # Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
 function μ_i_vector_funct(T)
-    μ_i_vector = zeros(5)
+    μ_i_vector = Vector{Num}(undef, 5)
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
@@ -168,7 +168,7 @@ end
 
 # Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
 function λ_i_vector_func(T)
-    λ_i_vector = zeros(5)
+    λ_i_vector = Vector{Num}(undef, 5)
     # p = [i, A, B, C, D]
     p = [1 5.1489e-4 0.6863 57.13 501.92;
         2 3.1728 -0.3838 964 1.86e6;
@@ -185,7 +185,7 @@ function λ_i_vector_func(T)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
-function A_ij_func(i, j, μ, M, T, T_boil, C)
+function A_ij_func(i, j, μ_i, M, T, T_boil, C)
     if i == j
         return 1.0
     else
@@ -193,20 +193,20 @@ function A_ij_func(i, j, μ, M, T, T_boil, C)
         S_j = 1.5 * T_boil[j]
         S_ij = C * (S_i * S_j)^0.5
 
-        A_ij = (1/4) * (1 + ((μ[i]/μ[j]) * (M[j]/M[i])^0.75 * ((T + S_i) / (T + S_j)) )^0.5 )^2 * ((T + S_ij) / (T + S_i))
+        A_ij = (1/4) * (1 + ((μ_i[i]/μ_i[j]) * (M[j]/M[i])^0.75 * ((T + S_i) / (T + S_j)) )^0.5 )^2 * ((T + S_ij) / (T + S_i))
         return A_ij
     end
 end
 
 # Thermal conductivity of mixture at atmospheric pressure ###[TESTED]###
-function λ_dash_func(y, λ, μ, M, T, T_boil, C)
+function λ_dash_func(y, λ, μ_i, M, T, T_boil, C)
     λ_dash = 0
 
     for i in eachindex(y)
         numerator = y[i] * λ[i]
         denominator = 0
         for j in eachindex(y)
-            denominator += y[j] * A_ij_func(i, j, μ, M, T, T_boil, C)
+            denominator += y[j] * A_ij_func(i, j, μ_i, M, T, T_boil, C)
         end
         λ_dash += numerator / denominator
     end
@@ -341,8 +341,8 @@ end
 
 @register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
 @register_symbolic λ_i_vector_func(T) # added to eqs #
-@register_symbolic A_ij_func(i, j, μ, M, T, T_boil, C) # added to eqs #
-@register_symbolic λ_dash_func(y, λ_i, μ, M, T, T_boil, C) # added to eqs #
+@register_symbolic A_ij_func(i, j, μ_i, M, T, T_boil, C) # added to eqs #
+@register_symbolic λ_dash_func(y, λ_i, μ_i, M, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash) # added to eqs #
 
 #@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
@@ -359,89 +359,6 @@ end
 @register_symbolic h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ) # added to eqs #
 #@register_symbolic ϵ_b_func(D_rct, D_cat) # constant
 #@register_symbolic a_v_func(ϵ_b, D_cat) # constant
-
-## Parameters ##
-@parameters begin
-    t
-    z
-    r
-
-    # Gas phase species balance
-    α # function, constant
-    a_v # function, constant
-    M[1:5]
-    θ
-    τ
-    
-    # Gas phase momentum balance
-    G # function, constant
-    D_cat
-    ϵ_b # function, constant
-    L
-
-    # Gas phase energy balance
-    R
-    T_boil[1:5]
-    T_cr
-    P_cr
-    Z_cr
-    ρ_r
-    C
-    
-    # Catalyst phase species balance
-    d_cat
-
-    # Catalyst phase energy balance
-    ρ_cat
-    C_p_cat
-    λ_cat
-end
-
-## Differential ##
-Dt = Differential(t)
-Dz = Differential(z)
-Dr = Differential(r)
-Drr = Differential(r)^2
-
-## Variables ##
-@variables begin
-    # Gas phase species balance
-    y(t, z, r)[1:5]
-    C_i(t, z)[1:5]
-    T(t, z)
-    P(z)
-
-    # Gas phase momentum balance
-
-    # Gas phase energy balance
-
-    # Catalyst phase species balance
-    C_c_i(t, z, r)[1:5]
-
-    # Catalyst phase energy balance
-    T_c(t, z, r)
-
-    # Other
-    D_ij(T, P)[1:5, 1:5]
-    D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-    D_i_m(y, D_eff_ij)[1:5]
-    ρ(P, T, R)
-    μ_i(T)[1:5]
-    μ(y, μ_i, M)
-    k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)[1:5]
-    u(α, T, P)
-    Re(ρ, u, L, μ)
-    C_p_i(T)[1:5]
-    C_p(y, C_p_i)
-    λ_i(T)[1:5]
-    λ_dash(y, λ_i, μ, M, T, T_boil, C)
-    λ(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
-    h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
-    C_p_c_i(T_c)[1:5]
-    H_i(T)[1:5]
-    H_c_i_surface(T_c)[1:5]
-    r_i(y, d_cat, θ, P, T, R)[1:5]
-end
  
 
 using DifferentialEquations, DomainSets, MethodOfLines
@@ -482,13 +399,93 @@ function main()
     C_p_cat = 1.0
     λ_cat = 1.0
 
-       
-   
-
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F_0, D_rct, ϵ_b)
     α = α_func(G, R)
     a_v = a_v_func(ϵ_b, D_cat)
+
+    ## Parameters ##
+    @parameters begin
+        t
+        z
+        r
+
+        # Gas phase species balance
+        α # function, constant
+        a_v # function, constant
+        M[1:5]
+        θ
+        τ
+        
+        # Gas phase momentum balance
+        G # function, constant
+        D_cat
+        ϵ_b # function, constant
+        L
+
+        # Gas phase energy balance
+        R
+        T_boil[1:5]
+        T_cr
+        P_cr
+        Z_cr
+        ρ_r
+        C
+        
+        # Catalyst phase species balance
+        d_cat
+
+        # Catalyst phase energy balance
+        ρ_cat
+        C_p_cat
+        λ_cat
+    end
+
+    ## Differential ##
+    Dt = Differential(t)
+    Dz = Differential(z)
+    Dr = Differential(r)
+    Drr = Differential(r)^2
+
+    ## Variables ##
+    @variables begin
+        # Gas phase species balance
+        y(t, z, r)[1:5]
+        C_i(t, z)[1:5]
+        T(t, z)
+        P(z)
+
+        # Gas phase momentum balance
+
+        # Gas phase energy balance
+
+        # Catalyst phase species balance
+        C_c_i(t, z, r)[1:5]
+
+        # Catalyst phase energy balance
+        T_c(t, z, r)
+
+        # Other
+        D_ij(T, P)[1:5, 1:5]
+        D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
+        D_i_m(y, D_eff_ij)[1:5]
+        ρ(P, T, R)
+        μ_i(T)[1:5]
+        μ(y, μ_i, M)
+        k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)[1:5]
+        u(α, T, P)
+        Re(ρ, u, L, μ)
+        C_p_i(T)[1:5]
+        C_p(y, C_p_i)
+        λ_i(T)[1:5]
+        λ_dash(y, λ_i, μ, M, T, T_boil, C)
+        λ(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
+        h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
+        C_p_c_i(T_c)[1:5]
+        H_i(T)[1:5]
+        H_c_i_surface(T_c)[1:5]
+        r_i(y, d_cat, θ, P, T, R)[1:5]
+    end
 
     ## Equations ##
     # 21. Gas phase species balance ## (check if broadcasting is needed) ##
