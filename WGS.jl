@@ -144,14 +144,14 @@ function μ_i_vector_funct(T)
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
-function μ_mix_func(y, μ_i, M)
+function μ_mix_func(y, μ_i, M_i)
     μ_mix = 0
 
     for i in eachindex(y)
         numerator = y[i] * μ_i[i]
         denominator = 0
         for j in eachindex(y)
-            denominator += y[j] * sqrt(M[j] / M[i])
+            denominator += y[j] * sqrt(M_i[j] / M_i[i])
         end
         μ_mix += numerator / denominator
     end
@@ -185,7 +185,7 @@ function λ_i_vector_func(T)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
-function A_ij_func(i, j, μ_i, M, T, T_boil, C)
+function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
     if i == j
         return 1.0
     else
@@ -193,20 +193,20 @@ function A_ij_func(i, j, μ_i, M, T, T_boil, C)
         S_j = 1.5 * T_boil[j]
         S_ij = C * (S_i * S_j)^0.5
 
-        A_ij = (1/4) * (1 + ((μ_i[i]/μ_i[j]) * (M[j]/M[i])^0.75 * ((T + S_i) / (T + S_j)) )^0.5 )^2 * ((T + S_ij) / (T + S_i))
+        A_ij = (1/4) * (1 + ((μ_i[i]/μ_i[j]) * (M_i[j]/M_i[i])^0.75 * ((T + S_i) / (T + S_j)) )^0.5 )^2 * ((T + S_ij) / (T + S_i))
         return A_ij
     end
 end
 
 # Thermal conductivity of mixture at atmospheric pressure ###[TESTED]###
-function λ_dash_func(y, λ, μ_i, M, T, T_boil, C)
+function λ_dash_func(y, λ, μ_i, M_i, T, T_boil, C)
     λ_dash = 0
 
     for i in eachindex(y)
         numerator = y[i] * λ[i]
         denominator = 0
         for j in eachindex(y)
-            denominator += y[j] * A_ij_func(i, j, μ_i, M, T, T_boil, C)
+            denominator += y[j] * A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
         end
         λ_dash += numerator / denominator
     end
@@ -326,7 +326,7 @@ end
 
 # Mass transfer coefficient
 function k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
-    0.357 * ((ρ * M .* D_i_m) / μ).^(2/3) * (G / (ρ * M * ϵ_b)) * (μ / (D_cat * G))^0.359
+    0.357 * ((ρ * M * D_i_m) / μ).^(2/3) * (G / (ρ * M * ϵ_b)) * (μ / (D_cat * G))^0.359
 end
 
 # Heat transfer coefficient
@@ -363,12 +363,12 @@ end
 
 @register_symbolic μ_i_func(T, A, B, C, D) # added to eqs #
 @register_symbolic μ_i_vector_funct(T) # added to eqs #
-@register_symbolic μ_mix_func(y, μ_i, M) # added to eqs #
+@register_symbolic μ_mix_func(y, μ_i, M_i) # added to eqs #
 
 @register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
 @register_symbolic λ_i_vector_func(T) # added to eqs #
-@register_symbolic A_ij_func(i, j, μ_i, M, T, T_boil, C) # added to eqs #
-@register_symbolic λ_dash_func(y, λ_i, μ_i, M, T, T_boil, C) # added to eqs #
+@register_symbolic A_ij_func(i, j, μ_i, M_i, T, T_boil, C) # added to eqs #
+@register_symbolic λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
 
 #@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
@@ -414,7 +414,7 @@ function main()
     L = 4.8e-3 # [m]
 
     # Fixed
-    M = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
+    M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
     θ = 0.55 #[-]
     τ = 5 #[-]
 
@@ -441,7 +441,7 @@ function main()
         # Gas phase species balance
         α # function, constant
         a_v # function, constant
-        M[1:5]
+        M_i[1:5]
         θ
         τ
         
@@ -490,19 +490,20 @@ function main()
         T_c(t, z, r)
 
         # Other
+        M(y)
         D_ij(T, P)[1:5, 1:5]
         D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
         D_i_m(y, D_eff_ij)[1:5]
         ρ(P, T, R)
         μ_i(T)[1:5]
-        μ(y, μ_i, M)
+        μ(y, μ_i, M_i)
         k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)[1:5]
         u(α, T, P)
         Re(ρ, u, L, μ)
         C_p_i(T)[1:5]
         C_p(y, C_p_i)
         λ_i(T)[1:5]
-        λ_dash(y, λ_i, μ, M, T, T_boil, C)
+        λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
         λ(T_cr, P_cr, Z_cr, ρ_r, M, λ_dash)
         h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
         C_p_c_i(T_c)[1:5]
@@ -519,19 +520,20 @@ function main()
     # 25. Catalyst phase energy balance
 
     eqs = [y .~ y_func(C_i),
+    M ~ sum(y .* M_i),
     D_ij .~ D_ij_matrix_func(T, P),
     D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ),
     D_i_m .~ D_i_m_func(y, D_eff_ij),
     ρ ~ ρ_func(P, T, R),
     μ_i .~ μ_i_vector_funct(T),
-    μ ~ μ_mix_func(y, μ_i, M),
+    μ ~ μ_mix_func(y, μ_i, M_i),
     k_c_i .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
     u ~ u_func(α, T, P),
     Re ~ Re_func(ρ, u, L, μ),
     C_p_i .~ C_p_i_vector_func(T),
     C_p ~ C_p_func(y, C_p_i),
     λ_i .~ λ_i_vector_func(T),
-    λ_dash ~ λ_dash_func(y, λ_i, μ, M, T, T_boil, C),
+    λ_dash ~ λ_dash_func(y, λ_i, μ, M_i, T, T_boil, C),
     λ ~ λ_func(y, T, P, R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
     C_p_c_i .~ C_p_i_vector_func(T_c),
