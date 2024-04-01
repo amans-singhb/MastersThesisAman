@@ -515,6 +515,10 @@ function main()
         r_i(y, d_cat, θ, P, T, R)[1:5]
     end
 
+    # Define the surface values (not added to eqs and bcs yet)
+    T_c_surface(t, z) = T_c(t, z, 0.5 * D_cat)
+    C_c__i_surface(t, z) = C_c_i(t, z, 0.5 * D_cat)
+
     ## Equations ##
     # 21. Gas phase species balance ## (check if broadcasting is needed) ##
     # 22. Gas phase momentum balance
