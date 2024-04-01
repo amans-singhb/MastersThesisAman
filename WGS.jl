@@ -234,23 +234,28 @@ function λ_func(y, T, P, R, M, λ_dash)
     # Calculate compressibility factor Z_cr for the mixture
     Z_cr = (P_cr * V_cr) / (R * T_cr)
 
-    # Define constants A, B and C based on ρ_r
-    if ρ_r_val < 0.5
-        A = 2.702e-4
-        B = 0.535
-        C = -1.000
-    elseif ρ_r_val >= 0.5 && ρ_r < 2.0 # added >= to include 0.5
-        A = 2.528e-4
-        B = 0.670
-        C = -1.069
-    elseif ρ_r_val >= 2.0 && ρ_r < 2.8 # added >= to include 2.0
-        A = 0.574e-4
-        B = 1.155
-        C = 2.016
-    else
-        print("Error: ρ_r not in range, ρ_r = ", ρ_r_val)
-        return
-    end
+    # # Define constants A, B and C based on ρ_r
+    # if ρ_r < 0.5
+    #     A = 2.702e-4
+    #     B = 0.535
+    #     C = -1.000
+    # elseif ρ_r >= 0.5 && ρ_r < 2.0 # added >= to include 0.5
+    #     A = 2.528e-4
+    #     B = 0.670
+    #     C = -1.069
+    # elseif ρ_r >= 2.0 && ρ_r < 2.8 # added >= to include 2.0
+    #     A = 0.574e-4
+    #     B = 1.155
+    #     C = 2.016
+    # else
+    #     print("Error: ρ_r not in range, ρ_r = ", ρ_r_val)
+    #     return
+    # end
+
+    # just for testing purposes (need to fix boolean issue)
+    A = 2.528e-4
+    B = 0.670
+    C = -1.069
 
     λ = λ_dash + (A * (exp(B * ρ_r) + C)) / (((T_cr^(1/6) * M^0.5) / P_cr^(2/3)) * Z_cr^5)
 
