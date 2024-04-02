@@ -30,6 +30,7 @@ end
 # Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
 function D_ij_matrix_func(T, P)
     D_ij_matrix = Matrix{Num}(undef, 5, 5)
+
     #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error)
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
         "a" 3 2 3.14e-5 1.75 1 0 11.7 0;
@@ -69,8 +70,8 @@ end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
 function D_i_m_func(y, D_eff_ij)
-    D_i_m_vec = Vector{Num}(undef, 5)
-
+    D_i_m_vec = Array{Num}(undef, 5)
+    
     for i in eachindex(y)
         denominator = 0
         index = i[1]
@@ -97,7 +98,8 @@ end
 
 # Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
 function C_p_i_vector_func(T)
-    C_p_i_vector = Vector{Num}(undef, 5)
+    C_p_i_vector = Array{Num}(undef, 5)
+    
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
@@ -127,7 +129,8 @@ end
 
 # Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
 function μ_i_vector_funct(T)
-    μ_i_vector = Vector{Num}(undef, 5)
+    μ_i_vector = Array{Num}(undef, 5)
+    
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
@@ -168,7 +171,8 @@ end
 
 # Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
 function λ_i_vector_func(T)
-    λ_i_vector = Vector{Num}(undef, 5)
+    λ_i_vector = Array{Num}(undef, 5)
+    
     # p = [i, A, B, C, D]
     p = [1 5.1489e-4 0.6863 57.13 501.92;
         2 3.1728 -0.3838 964 1.86e6;
@@ -185,7 +189,7 @@ function λ_i_vector_func(T)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
-function A_ij_func(i, j, μ_i::Symbolics.Arr{Num, 5}, M_i::Symbolics.Arr{Num, 5}, T, T_boil::Symbolics.Arr{Num, 5}, C)
+function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
     if i == j
         return 1.0
     else
@@ -517,7 +521,7 @@ function main()
 
     # Define the surface values (not added to eqs and bcs yet)
     T_c_surface(t, z) = T_c(t, z, 0.5 * D_cat)
-    C_c__i_surface(t, z) = C_c_i(t, z, 0.5 * D_cat)
+    C_c_i_surface(t, z) = C_c_i(t, z, 0.5 * D_cat)
 
     ## Equations ##
     # 21. Gas phase species balance ## (check if broadcasting is needed) ##
@@ -545,11 +549,11 @@ function main()
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
     C_p_c_i .~ C_p_i_vector_func(T_c),
     H_i .~ H_i_func(T),
-    H_c_i_surface .~ H_i_func(T_c(t, z, 0.5 * D_cat)),
+    H_c_i_surface .~ H_i_func(T_c_surface(t, z)),
     r_i .~ r_i_func(y, d_cat, θ, P, T),
-    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
+    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i_surface(t, z) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
+    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c_surface(t, z) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_surface(t, z) - C_i)),
     Dt(C_c_i) .~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
     (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) .~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
 
@@ -567,8 +571,8 @@ function main()
     P(0) ~ P_in,
     Dz(T_c(t, z, 0)) ~ 0,
     Dz(C_c_i(t, z, 0)) .~ 0,
-    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
-    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
+    k_c_i .* (C_c_i_surface(t, z) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i_surface(t, z)),
+    h_f * (T_c_surface(t, z) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i_surface(t, z) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c_surface(t, z)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i_surface(t, z)))]
 
     # Domain
     domains = [z ∈ IntervalDomain(0.0, L),
