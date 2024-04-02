@@ -519,7 +519,10 @@ function main()
         r_i(y, d_cat, θ, P, T, R)[1:5]
     end
 
-    # Define the surface values (not added to eqs and bcs yet)
+    # Define the surface values
+    @syms T_c(t, z, r)(t, z, r)
+    @syms C_c_i(t, z, r)(t, z, r)
+    
     T_c_surface(t, z) = T_c(t, z, 0.5 * D_cat)
     C_c_i_surface(t, z) = C_c_i(t, z, 0.5 * D_cat)
 
