@@ -402,200 +402,207 @@ using DifferentialEquations, DomainSets, MethodOfLines
 using DelimitedFiles
 
 ### Solving PDesystem ###
-function main()
-    ## Define and calculate parameters ##
 
-    # Variable
-    F_0 = 10 # [mol/h]
+## Define and calculate parameters ##
+
+# Variable
+F_0 = 10 # [mol/h]
+
+R_joule = 8.314 # [J/mol K]
+R_atmL = 0.082057 # [L atm/mol K]
+R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
+R = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
+
+T_in = 473 # [K] 200 C
+P_in = 1.3 # [atm]
+
+y_0 = [0.2749, 0.1198, 0.2686, 0.3165, 0.0202]
+V_flow_0 = (F_0 * R_atmm3 * T_in) / P_in # [m3/h]
+C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
+
+D_cat = 0.25e-3 # [m]
+D_cat_val = D_cat
+rad_cat = 0.5 * D_cat # [m]
+D_rct = 12.7e-3 # [m]
+L = 4.8e-3 # [m]
+L_val = L
+
+# Fixed
+M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
+θ = 0.55 #[-]
+τ = 5 #[-]
+
+T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
+
+C = 1.0 # [-]
+
+d_cat = 5904 # [kg/m^3]
+ρ_cat = 1.0
+C_p_cat = 1.0
+λ_cat = 1.0
+
+ϵ_b = ϵ_b_func(D_rct, D_cat)
+G = G_func(F_0, D_rct, ϵ_b)
+α = α_func(G, R)
+a_v = a_v_func(ϵ_b, D_cat)
+
+## Parameters ##
+@parameters begin
+    t
+    z
+    r
+
+    # Gas phase species balance
+    α # function, constant
+    a_v # function, constant
+    M_i[1:5]
+    θ
+    τ
     
-    R_joule = 8.314 # [J/mol K]
-    R_atmL = 0.082057 # [L atm/mol K]
-    R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
-    R = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
+    # Gas phase momentum balance
+    G # function, constant
+    D_cat
+    rad_cat
+    ϵ_b # function, constant
+    L
 
-    T_in = 473 # [K] 200 C
-    P_in = 1.3 # [atm]
+    # Gas phase energy balance
+    R
+    T_boil[1:5]
+    C
     
-    y_0 = [0.2749, 0.1198, 0.2686, 0.3165, 0.0202]
-    V_flow_0 = (F_0 * R_atmm3 * T_in) / P_in # [m3/h]
-    C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
+    # Catalyst phase species balance
+    d_cat
 
-    D_cat = 0.25e-3 # [m]
-    D_rct = 12.7e-3 # [m]
-    L = 4.8e-3 # [m]
-
-    # Fixed
-    M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
-    θ = 0.55 #[-]
-    τ = 5 #[-]
-
-    T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
-
-    C = 1.0 # [-]
-
-    d_cat = 5904 # [kg/m^3]
-    ρ_cat = 1.0
-    C_p_cat = 1.0
-    λ_cat = 1.0
-
-    ϵ_b = ϵ_b_func(D_rct, D_cat)
-    G = G_func(F_0, D_rct, ϵ_b)
-    α = α_func(G, R)
-    a_v = a_v_func(ϵ_b, D_cat)
-
-    ## Parameters ##
-    @parameters begin
-        t
-        z
-        r
-
-        # Gas phase species balance
-        α # function, constant
-        a_v # function, constant
-        M_i[1:5]
-        θ
-        τ
-        
-        # Gas phase momentum balance
-        G # function, constant
-        D_cat
-        ϵ_b # function, constant
-        L
-
-        # Gas phase energy balance
-        R
-        T_boil[1:5]
-        C
-        
-        # Catalyst phase species balance
-        d_cat
-
-        # Catalyst phase energy balance
-        ρ_cat
-        C_p_cat
-        λ_cat
-    end
-
-    ## Differential ##
-    Dt = Differential(t)
-    Dz = Differential(z)
-    Dr = Differential(r)
-    Drr = Differential(r)^2
-
-    ## Variables ##
-    @variables begin
-        # Gas phase species balance
-        y(t, z, r)[1:5]
-        C_i(t, z)[1:5]
-        T(t, z)
-        P(z)
-    
-        # Catalyst phase species balance
-        C_c_i(..)[1:5]
-    
-        # Catalyst phase energy balance
-        T_c(..)
-    
-        # Other
-        M(y)
-        D_ij(T, P)[1:5, 1:5]
-        D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-        D_i_m(y, D_eff_ij)[1:5]
-        ρ(P, T, R)
-        μ_i(T)[1:5]
-        μ(y, μ_i, M_i)
-        k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)[1:5]
-        u(α, T, P)
-        Re(ρ, u, L, μ)
-        C_p_i(T)[1:5]
-        C_p(y, C_p_i)
-        λ_i(T)[1:5]
-        λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
-        λ(y, T, P, R, M, λ_dash)
-        h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
-        C_p_c_i(T_c(t, z, r))[1:5]
-        H_i(T)[1:5]
-        H_c_i_surface(T_c(t, z, r))[1:5]
-        r_i(y, d_cat, θ, P, T, R)[1:5]
-    end
-
-    ## Equations ##
-    # 21. Gas phase species balance ## (check if broadcasting is needed) ##
-    # 22. Gas phase momentum balance
-    # 23. Gas phase energy balance
-    # 24. Catalyst phase species balance
-    # 25. Catalyst phase energy balance
-
-    eqs = [y .~ y_func(C_i),
-    M ~ sum(y .* M_i),
-    D_ij .~ D_ij_matrix_func(T, P),
-    D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ),
-    D_i_m .~ D_i_m_func(y, D_eff_ij),
-    ρ ~ ρ_func(P, T, R),
-    μ_i .~ μ_i_vector_funct(T),
-    μ ~ μ_mix_func(y, μ_i, M_i),
-    k_c_i .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
-    u ~ u_func(α, T, P),
-    Re ~ Re_func(ρ, u, L, μ),
-    C_p_i .~ C_p_i_vector_func(T),
-    C_p ~ C_p_func(y, C_p_i),
-    λ_i .~ λ_i_vector_func(T),
-    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C),
-    λ ~ λ_func(y, T, P, R, M, λ_dash),
-    h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
-    H_i .~ H_i_func(T),
-    H_c_i_surface .~ H_i_func(T_c(t, z, 0.5 * D_cat)),
-    r_i .~ r_i_func(y, d_cat, θ, P, T),
-    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
-    Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
-    Dt(C_c_i) .~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
-    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c(t, z, r))) .~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c(t, z, r)))]
-
-    ## Boundary conditions ##
-    # 1. T at reactor inlet
-    # 2. C_i at reactor inlet
-    # 3. P at reactor inlet
-    # 4. dT_c/dz at catalyst center
-    # 5. dC_c_i/dz at catalyst center
-    # 6. conditions at catalyst surface
-    # 7. conditions at catalyst surface
-
-    bcs = [T(t, 0) ~ T_in,
-    C_i(t, 0) .~ C_i_in,
-    P(0) ~ P_in,
-    Dz(T_c(t, z, 0)) ~ 0,
-    Dz(C_c_i(t, z, 0)) .~ 0,
-    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
-    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
-
-    # Domain
-    domains = [t ∈ Interval(0.0, 10.0),
-    z ∈ Interval(0.0, L),
-    r ∈ Interval(0.0, D_cat)]
-
-    # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-    @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i, T, P, C_c_i, T_c, M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α, a_v, M_i, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, C, d_cat, ρ_cat, C_p_cat, λ_cat])
-
-
-    # Discretization
-    dz = 0.1
-    dr = 0.1
-    order = 2
-    discretization = MOLFiniteDifference([z => dz, r => dr], t)
-
-    # Converting PDE to ODE with MOL
-    prob = discretize(WGS_pde, discretization)
-
-    # Solving ODE
-    sol = solve(prob, Tsit5(), saveat=0.1)
-    
-    # Saving results
-    writedlm("WGS_results.csv", sol, ",")
+    # Catalyst phase energy balance
+    ρ_cat
+    C_p_cat
+    λ_cat
 end
 
-main()
+## Differential ##
+Dt = Differential(t)
+Dz = Differential(z)
+Dr = Differential(r)
+Drr = Differential(r)^2
+
+## Variables ##
+@variables begin
+    # Gas phase species balance
+    y(t, z, r)[1:5]
+    C_i(..)[1:5]
+    T(..)
+    P(..)
+
+    # Catalyst phase species balance
+    C_c_i(..)[1:5]
+
+    # Catalyst phase energy balance
+    T_c(..)
+
+    # Other
+    M(y)
+    D_ij(T, P)[1:5, 1:5]
+    D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
+    D_i_m(y, D_eff_ij)[1:5]
+    ρ(P, T, R)
+    μ_i(T)[1:5]
+    μ(y, μ_i, M_i)
+    k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
+    u(α, T, P)
+    Re(ρ, u, L, μ)
+    C_p_i(T)[1:5]
+    C_p(y, C_p_i)
+    λ_i(T)[1:5]
+    λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
+    λ(y, T, P, R, M, λ_dash)
+    h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
+    C_p_c_i(T_c(t, z, r))[1:5]
+    H_i(T)[1:5]
+    H_c_i_surface(T_c(t, z, r))[1:5]
+    r_i(y, d_cat, θ, P, T, R)[1:5]
+end
+
+## Equations ##
+# 21. Gas phase species balance ## (check if broadcasting is needed) ##
+# 22. Gas phase momentum balance
+# 23. Gas phase energy balance
+# 24. Catalyst phase species balance
+# 25. Catalyst phase energy balance
+
+equations = [y .~ y_func(C_i(t,z)),
+M ~ sum(y .* M_i),
+D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
+D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ),
+D_i_m .~ D_i_m_func(y, D_eff_ij),
+ρ ~ ρ_func(P(z), T(t,z), R),
+μ_i .~ μ_i_vector_funct(T(t,z)),
+μ ~ μ_mix_func(y, μ_i, M_i),
+k_c_i .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
+u ~ u_func(α, T(t,z), P(z)),
+Re ~ Re_func(ρ, u, L, μ),
+C_p_i .~ C_p_i_vector_func(T(t,z)),
+C_p ~ C_p_func(y, C_p_i),
+λ_i .~ λ_i_vector_func(T(t,z)),
+λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(t,z), T_boil, C),
+λ ~ λ_func(y, T(t,z), P(z), R, M, λ_dash),
+h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
+C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
+H_i .~ H_i_func(T(t,z)),
+H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat)),
+r_i .~ r_i_func(y, d_cat, θ, P(z), T(t,z)),
+Dz(P(z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
+C_p * (P(z) / (R * T(t,z))) * Dt(T(t,z)) ~ (- C_p) * G * Dz(T(t,z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t,z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t,z)))]
+
+DE1 = [Dt(C_i(t,z)[i]) ~ -α * (T(t,z)/P(z)) *  Dz(C_i(t,z)[i]) - C_i(t,z)[i] * α * ((1/P(z)) * Dz(T(t,z)) - (T(t,z)/P(z)^2) * Dz(P(z))) + k_c_i * a_v * (C_c_i(t, z, rad_cat)[i] - C_i(t,z)[i]) for i in 1:5]
+DE4 = [Dt(C_c_i(t,z,r)[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i(t,z,r)[i]) + D_i_m[i] * Drr(C_c_i(t,z,r)[i]) + r_i[i] for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+
+eqs = [equations; DE1; DE4; DE5]
+
+## Boundary conditions ##
+# 1. T at reactor inlet
+# 2. C_i at reactor inlet
+# 3. P at reactor inlet
+# 4. dT_c/dz at catalyst center
+# 5. dC_c_i/dz at catalyst center
+# 6. conditions at catalyst surface
+# 7. conditions at catalyst surface
+
+boundaries = [T(t, 0) ~ T_in,
+P(0) ~ P_in,
+Dz(T_c(t, z, 0)) ~ 0]
+BCS1 = [C_i(t, 0)[i] ~ C_i_in[i] for i in 1:5]
+BCS2 = [Dz(C_c_i(t, z, 0)[i]) ~ 0 for i in 1:5]
+BCS3 = [k_c_i * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5]
+STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
+BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i(t, z, rad_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP1)]
+
+bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
+
+# Domain
+domains = [t ∈ Interval(0.0, 10.0),
+z ∈ Interval(0.0, L_val),
+r ∈ Interval(0.0, D_cat_val)]
+
+# PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i, T, P, C_c_i, T_c, M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α, a_v, M_i, θ, τ, G, D_cat, rad_cat, ϵ_b, L, R, T_boil, C, d_cat, ρ_cat, C_p_cat, λ_cat])
+
+# Discretization
+dz = L_val/100
+dr = D_cat_val/100
+order = 2
+discretization = MOLFiniteDifference([z => dz, r => dr], t)
+
+# Converting PDE to ODE with MOL
+prob = discretize(WGS_pde, discretization)
+
+# Solving ODE
+sol = solve(prob, Tsit5(), saveat=0.1)
+
+# Saving results
+writedlm("WGS_results.csv", sol, ",")
+
 
 
 # ### Test functions ###
