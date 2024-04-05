@@ -398,7 +398,7 @@ end
 #@register_symbolic a_v_func(ϵ_b, D_cat) # constant
  
 
-using DifferentialEquations, DomainSets, MethodOfLines
+using OrdinaryDiffEq, DomainSets, MethodOfLines
 using DelimitedFiles
 
 ### Solving PDesystem ###
@@ -584,7 +584,7 @@ z ∈ Interval(0.0, L_val),
 r ∈ Interval(0.0, D_cat_val)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i(t, z), T(t, z), P(z), C_c_i(t, z, r), T_c(t, z, r), M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α => α_val, a_v => a_v_val, M_i => M_i_val, θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil => T_boil_val, C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i, u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
