@@ -108,7 +108,7 @@ function C_p_i_vector_func(T)
         5 6.50 1.00e-3 0 0]
     
     for row in eachrow(p)
-        i = Int(row[1])
+        i = row[1]
         C_p_i_vector[i] = C_p_i_func(T, row[2], row[3], row[4], row[5])
     end
 
@@ -431,7 +431,7 @@ function main()
 
     T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
 
-    C = 1.0
+    C = 1.0 # [-]
 
     d_cat = 5904 # [kg/m^3]
     ρ_cat = 1.0
@@ -491,10 +491,10 @@ function main()
         P(z)
     
         # Catalyst phase species balance
-        C_c_i(t, z, r)[1:5]
+        C_c_i(..)[1:5]
     
         # Catalyst phase energy balance
-        T_c(t, z, r)
+        T_c(..)
     
         # Other
         M(y)
@@ -513,18 +513,11 @@ function main()
         λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
         λ(y, T, P, R, M, λ_dash)
         h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
-        C_p_c_i(T_c)[1:5]
+        C_p_c_i(T_c(t, z, r))[1:5]
         H_i(T)[1:5]
-        H_c_i_surface(T_c)[1:5]
+        H_c_i_surface(T_c(t, z, r))[1:5]
         r_i(y, d_cat, θ, P, T, R)[1:5]
     end
-
-    # Define the surface values
-    @syms T_c(t, z, r)(t, z, r)
-    @syms C_c_i(t, z, r)(t, z, r)
-    
-    T_c_surface(t, z) = T_c(t, z, 0.5 * D_cat)
-    C_c_i_surface(t, z) = C_c_i(t, z, 0.5 * D_cat)
 
     ## Equations ##
     # 21. Gas phase species balance ## (check if broadcasting is needed) ##
@@ -550,15 +543,15 @@ function main()
     λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C),
     λ ~ λ_func(y, T, P, R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    C_p_c_i .~ C_p_i_vector_func(T_c),
+    C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
     H_i .~ H_i_func(T),
-    H_c_i_surface .~ H_i_func(T_c_surface(t, z)),
+    H_c_i_surface .~ H_i_func(T_c(t, z, 0.5 * D_cat)),
     r_i .~ r_i_func(y, d_cat, θ, P, T),
-    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i_surface(t, z) - C_i),
+    Dt(C_i) .~ -α * (T/P) *  Dz(C_i) - C_i * α * ((1/P) * Dz(T) - (T/P^2) * Dz(P)) + k_c_i .* a_v .* (C_c_i(t, z, 0.5 * D_cat) - C_i),
     Dz(P) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c_surface(t, z) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_surface(t, z) - C_i)),
+    C_p * (P / (R * T)) * Dt(T) ~ (- C_p) * G * Dz(T) + h_f * a_v * (T_c(t, z, 0.5 * D_cat) - T) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, 0.5 * D_cat) - C_i)),
     Dt(C_c_i) .~ (((2 * D_i_m) / r) + Dr(D_i_m)) .* Dr(C_c_i) + D_i_m .* Drr(C_c_i) + r_i,
-    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c)) .~ (((2 * λ_cat) / r) * Dr(T_c) + λ_cat * Drr(T_c)) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c))]
+    (1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i .* C_c_i * Dt(T_c(t, z, r))) .~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m .* Dr(C_c_i) .* C_p_c_i * Dr(T_c(t, z, r)))]
 
     ## Boundary conditions ##
     # 1. T at reactor inlet
@@ -574,12 +567,13 @@ function main()
     P(0) ~ P_in,
     Dz(T_c(t, z, 0)) ~ 0,
     Dz(C_c_i(t, z, 0)) .~ 0,
-    k_c_i .* (C_c_i_surface(t, z) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i_surface(t, z)),
-    h_f * (T_c_surface(t, z) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i_surface(t, z) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c_surface(t, z)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i_surface(t, z)))]
+    k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z)) .~ (- D_i_m) .* Dr(C_c_i(t, z, 0.5 * D_cat)),
+    h_f * (T_c(t, z, 0.5 * D_cat) - T(t, z)) + sum(H_i(z) .* k_c_i .* (C_c_i(t, z, 0.5 * D_cat) - C_i(t, z))) .~ (- λ_cat) * Dr(T_c(t, z, 0.5 * D_cat)) - sum(H_c_i(z, 0.5 * D_cat) .* D_i_m .* Dr(C_c_i(t, z, 0.5 * D_cat)))]
 
     # Domain
-    domains = [z ∈ IntervalDomain(0.0, L),
-    r ∈ IntervalDomain(0.0, D_cat)]
+    domains = [t ∈ Interval(0.0, 10.0),
+    z ∈ Interval(0.0, L),
+    r ∈ Interval(0.0, D_cat)]
 
     # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
     @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i, T, P, C_c_i, T_c, M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α, a_v, M_i, θ, τ, G, D_cat, ϵ_b, L, R, T_boil, C, d_cat, ρ_cat, C_p_cat, λ_cat])
