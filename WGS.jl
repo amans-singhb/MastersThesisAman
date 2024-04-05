@@ -411,7 +411,7 @@ F_0 = 10 # [mol/h]
 R_joule = 8.314 # [J/mol K]
 R_atmL = 0.082057 # [L atm/mol K]
 R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
-R = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
+R_val = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
 
 T_in = 473 # [K] 200 C
 P_in = 1.3 # [atm]
@@ -420,31 +420,29 @@ y_0 = [0.2749, 0.1198, 0.2686, 0.3165, 0.0202]
 V_flow_0 = (F_0 * R_atmm3 * T_in) / P_in # [m3/h]
 C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
 
-D_cat = 0.25e-3 # [m]
-D_cat_val = D_cat
-rad_cat = 0.5 * D_cat # [m]
+D_cat_val = 0.25e-3 # [m]
+rad_cat_val = 0.5 * D_cat_val # [m]
 D_rct = 12.7e-3 # [m]
-L = 4.8e-3 # [m]
-L_val = L
+L_val = 4.8e-3 # [m]
 
 # Fixed
-M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
-θ = 0.55 #[-]
-τ = 5 #[-]
+M_i_val = [28.01, 44.01, 2.016, 18.016, 28.014] # [g/mol]
+θ_val = 0.55 #[-]
+τ_val = 5 #[-]
 
-T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
+T_boil_val = [81.65, 194.7, 20.35, 373, 77.36] # [K]
 
-C = 1.0 # [-]
+C_val = 1.0 # [-]
 
-d_cat = 5904 # [kg/m^3]
-ρ_cat = 1.0
-C_p_cat = 1.0
-λ_cat = 1.0
+d_cat_val = 5904 # [kg/m^3]
+ρ_cat_val = 2400 # plaeceholder value
+C_p_cat_val = 35.5 # plaeceholder value
+λ_cat_val = 0.1 # plaeceholder value
 
-ϵ_b = ϵ_b_func(D_rct, D_cat)
-G = G_func(F_0, D_rct, ϵ_b)
-α = α_func(G, R)
-a_v = a_v_func(ϵ_b, D_cat)
+ϵ_b_val = ϵ_b_func(D_rct, D_cat)
+G_val = G_func(F_0, D_rct, ϵ_b)
+α_val = α_func(G, R)
+a_v_val = a_v_func(ϵ_b, D_cat)
 
 ## Parameters ##
 @parameters begin
@@ -586,7 +584,7 @@ z ∈ Interval(0.0, L_val),
 r ∈ Interval(0.0, D_cat_val)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i, T, P, C_c_i, T_c, M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α, a_v, M_i, θ, τ, G, D_cat, rad_cat, ϵ_b, L, R, T_boil, C, d_cat, ρ_cat, C_p_cat, λ_cat])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y, C_i(t, z), T(t, z), P(z), C_c_i(t, z, r), T_c(t, z, r), M, D_ij, D_eff_ij, D_i_m, ρ, μ_i, μ, k_c_i, u, Re, C_p_i, C_p, λ_i, λ_dash, λ, h_f, C_p_c_i, H_i, H_c_i_surface, r_i], [α => α_val, a_v => a_v_val, M_i => M_i_val, θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil => T_boil_val, C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
