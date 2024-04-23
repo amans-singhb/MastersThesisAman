@@ -1,4 +1,4 @@
-### Defining nameing conventions and numeration ###
+### Defining naming conventions and numeration ###
 
 # for species i and j have the following numeration:
 # 1 - CO
@@ -7,6 +7,9 @@
 # 4 - H2O
 # 5 - N2
 
+### Listing some assumptions made for certain elements of the code ###
+# 1. For parts where there are exponents, abs() is used to avoid negative values (which cause problems due to complex numbers).
+#    This assumes that the negative values should not be negative / that the negative values are not possible.
 
 ### Define functions for physical properties ###
 using Symbolics
@@ -31,7 +34,7 @@ end
 function D_ij_matrix_func(T, P)
     D_ij_matrix = Matrix{Num}(undef, 5, 5)
 
-    #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error)
+    #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error, D accounts for lack of C in eq = "a" )
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
         "a" 3 2 3.14e-5 1.75 1 0 11.7 0;
         "b" 3 4 0 1.020 1 0 0 0;
@@ -316,7 +319,7 @@ function H_i_func(T)
     sol = solve(prob, CubaCuhre(); reltol=1e-6,abstol=1e-6)
 
     H_i = H_form + sol.u
-
+#analytic solution! !!!!!!!!!!!!!
     return H_i
 end
 
@@ -439,10 +442,10 @@ d_cat_val = 5904 # [kg/m^3]
 C_p_cat_val = 35.5 # plaeceholder value
 λ_cat_val = 0.1 # plaeceholder value
 
-ϵ_b_val = ϵ_b_func(D_rct, D_cat)
-G_val = G_func(F_0, D_rct, ϵ_b)
-α_val = α_func(G, R)
-a_v_val = a_v_func(ϵ_b, D_cat)
+ϵ_b_val = ϵ_b_func(D_rct, D_cat_val)
+G_val = G_func(F_0, D_rct, ϵ_b_val)
+α_val = α_func(G_val, R_val)
+a_v_val = a_v_func(ϵ_b_val, D_cat_val)
 
 ## Parameters ##
 @parameters begin
