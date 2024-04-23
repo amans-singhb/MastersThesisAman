@@ -19,7 +19,7 @@ using ModelingToolkit
 
 # Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
 function D_ij_func_a(T, P, A, B, C, D, E, F)
-    (A * T^B / P) * (log(C / T))^(-2 * D) * exp(-E / T - F / T^2)
+    (A * abs(T)^B / P) * abs((log(C / abs(T))))^(-2 * D) * exp(-E / T - F / T^2)
 end
 
 function D_ij_func_b(P, B)
@@ -127,7 +127,7 @@ end
 
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
 function μ_i_func(T, A, B, C, D)
-    (A * T^B) / (1 + C / T + D / T^2)
+    (A * abs(T)^B) / (1 + C / T + D / T^2)
 end
 
 # Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
@@ -169,7 +169,7 @@ end
 
 # Thermal conductivity of gas phase of species i {T [K], λ [kcal/h m K]}
 function λ_i_func(T, A, B, C, D)
-    (A * T^B) / (1 + C / T + D / T^2)
+    (A * abs(T)^B) / (1 + C / T + D / T^2)
 end
 
 # Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
@@ -198,9 +198,9 @@ function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
     else
         S_i = 1.5 * T_boil[i]
         S_j = 1.5 * T_boil[j]
-        S_ij = C * (S_i * S_j)^0.5
+        S_ij = C * abs((S_i * S_j))^0.5
 
-        A_ij = (1/4) * (1 + ((μ_i[i]/μ_i[j]) * (M_i[j]/M_i[i])^0.75 * ((T + S_i) / (T + S_j)) )^0.5 )^2 * ((T + S_ij) / (T + S_i))
+        A_ij = (1/4) * (1 + abs(((μ_i[i]/μ_i[j]) * abs((M_i[j]/M_i[i]))^0.75 * ((T + S_i) / (T + S_j))))^0.5 )^2 * ((T + S_ij) / (T + S_i))
         return A_ij
     end
 end
@@ -264,7 +264,7 @@ function λ_func(y, T, P, R, M, λ_dash)
     B = 0.670
     C = -1.069
 
-    λ = λ_dash + (A * (exp(B * ρ_r) + C)) / (((T_cr^(1/6) * M^0.5) / P_cr^(2/3)) * Z_cr^5)
+    λ = λ_dash + (A * (exp(B * ρ_r) + C)) / (((abs(T_cr)^(1/6) * abs(M)^0.5) / abs(P_cr)^(2/3)) * Z_cr^5)
 
     return λ
 end
@@ -291,7 +291,7 @@ end
 
 # Friction factor correlation for gas flow through packed tubular reactor
 function F_fr_func(G, D_cat, ρ, ϵ_b, Re)
-    (- G^2 / (ρ * D_cat)) * ((1 - ϵ_b) / ϵ_b^3) * (1.75 + 4.2 * ((1 - ϵ_b) / Re^(1/6)))   
+    (- G^2 / (ρ * D_cat)) * ((1 - ϵ_b) / ϵ_b^3) * (1.75 + 4.2 * ((1 - ϵ_b) / abs(Re)^(1/6)))   
 end
 
 # Molar density of the gas phase
@@ -340,12 +340,12 @@ end
 
 # Mass transfer coefficient
 function k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
-    0.357 * ((ρ * M * D_i_m) / μ).^(2/3) * (G / (ρ * M * ϵ_b)) * (μ / (D_cat * G))^0.359
+    0.357 * abs(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
 end
 
 # Heat transfer coefficient
 function h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ)
-    1.37 * (0.357 / ϵ_b) * ((C_p * G) / M) * (μ / ( D_cat * G))^0.359 * ((λ * M)/ (C_p * μ))^(2/3)
+    1.37 * (0.357 / ϵ_b) * ((C_p * G) / M) * abs((μ / ( D_cat * G)))^0.359 * abs(((λ * M)/ (C_p * μ)))^(2/3)
 end
 
 ## Other correlations ##
