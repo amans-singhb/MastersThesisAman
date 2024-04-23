@@ -362,7 +362,7 @@ end
 
 # Mass transfer coefficient
 function k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
-    0.357 * abs(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
+    0.357 * abs.(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
 end
 
 # Heat transfer coefficient
