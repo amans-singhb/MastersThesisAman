@@ -309,17 +309,39 @@ function y_func(C_i)
     C_i / sum(C_i)
 end
 
+# Heat capacity integrated for i {T [K], C_p_i [cal/mol K]}
+function C_p_i_integrated_func(T, A, B, C, D)
+    A * T + B/2 * T^2 + C/3 * T^3 - D / T
+end
+
+# Array of Heat capacity integrated for all species
+function C_p_i_integrated_vector_func(T)
+    C_p_i_integrated_vector = Array{Num}(undef, 5)
+    
+    # p = [i, A, B, C, D]
+    p = [1 6.60 1.20e-3 0 0;
+        2 10.34 2.74e-3 0 -1.955e5;
+        3 6.62 0.81e-3 0 0;
+        4 8.22 0.15e-3 1.34e-6 0;
+        5 6.50 1.00e-3 0 0]
+    
+    for row in eachrow(p)
+        i = row[1]
+        C_p_i_integrated_vector[i] = C_p_i_integrated_func(T, row[2], row[3], row[4], row[5])
+    end
+
+    return C_p_i_vector
+end
+
 # Enthalpy of i
-using Integrals, Cuba
 function H_i_func(T)
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
-    domain = (298, T)
-    prob = IntegralProblem(C_p_i_vector_func, domain)
-    sol = solve(prob, CubaCuhre(); reltol=1e-6,abstol=1e-6)
+    C_p_i_integrated_vector_298 = C_p_i_integrated_vector_func(298)
+    C_p_i_integrated_vector_T = C_p_i_integrated_vector_func(T)
 
-    H_i = H_form + sol.u
-#analytic solution! !!!!!!!!!!!!!
+    H_i = H_form + (C_p_i_integrated_vector_T - C_p_i_integrated_vector_298)
+
     return H_i
 end
 
@@ -392,7 +414,11 @@ end
 @register_symbolic ρ_func(P, T, R) # added to eqs #
 @register_symbolic u_func(α, T, P) # added to eqs #
 @register_symbolic y_func(C_i) # added to eqs #
+
+@register_symbolic C_p_i_integrated_func(T, A, B, C, D) # added to eqs #
+@register_symbolic C_p_i_integrated_vector_func(T) # added to eqs #
 @register_symbolic H_i_func(T) # added to eqs #
+
 @register_symbolic r_i_func(y, d_cat, θ, P, T) # added to eqs #
 
 @register_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) # added to eqs #
