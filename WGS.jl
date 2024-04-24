@@ -513,39 +513,180 @@ Drr = Differential(r)^2
 ## Variables ##
 @variables begin
     # Gas phase species balance
-    y(t, z, r)[1:5]
-    C_i(..)[1:5]
+    y_1(t, z, r)
+    y_2(t, z, r)
+    y_3(t, z, r)
+    y_4(t, z, r)
+    y_5(t, z, r)
+
+    C_1(..)
+    C_2(..)
+    C_3(..)
+    C_4(..)
+    C_5(..)
+
     T(..)
     P(..)
 
     # Catalyst phase species balance
-    C_c_i(..)[1:5]
+    C_c_1(..)
+    C_c_2(..)
+    C_c_3(..)
+    C_c_4(..)
+    C_c_5(..)
 
     # Catalyst phase energy balance
     T_c(..)
 
     # Other
     M(y)
-    D_ij(T, P)[1:5, 1:5]
-    D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-    D_i_m(y, D_eff_ij)[1:5]
+
+    D_11(T, P)
+    D_12(T, P)
+    D_13(T, P)
+    D_14(T, P)
+    D_15(T, P)
+
+    D_21(T, P)
+    D_22(T, P)
+    D_23(T, P)
+    D_24(T, P)
+    D_25(T, P)
+
+    D_31(T, P)
+    D_32(T, P)
+    D_33(T, P)
+    D_34(T, P)
+    D_35(T, P)
+
+    D_41(T, P)
+    D_42(T, P)
+    D_43(T, P)
+    D_44(T, P)
+    D_45(T, P)
+
+    D_51(T, P)
+    D_52(T, P)
+    D_53(T, P)
+    D_54(T, P)
+    D_55(T, P)
+
+
+    D_eff_11(D_ij, θ, τ)
+    D_eff_12(D_ij, θ, τ)
+    D_eff_13(D_ij, θ, τ)
+    D_eff_14(D_ij, θ, τ)
+    D_eff_15(D_ij, θ, τ)
+
+    D_eff_21(D_ij, θ, τ)
+    D_eff_22(D_ij, θ, τ)
+    D_eff_23(D_ij, θ, τ)
+    D_eff_24(D_ij, θ, τ)
+    D_eff_25(D_ij, θ, τ)
+
+    D_eff_31(D_ij, θ, τ)
+    D_eff_32(D_ij, θ, τ)
+    D_eff_33(D_ij, θ, τ)
+    D_eff_34(D_ij, θ, τ)
+    D_eff_35(D_ij, θ, τ)
+
+    D_eff_41(D_ij, θ, τ)
+    D_eff_42(D_ij, θ, τ)
+    D_eff_43(D_ij, θ, τ)
+    D_eff_44(D_ij, θ, τ)
+    D_eff_45(D_ij, θ, τ)
+
+    D_eff_51(D_ij, θ, τ)
+    D_eff_52(D_ij, θ, τ)
+    D_eff_53(D_ij, θ, τ)
+    D_eff_54(D_ij, θ, τ)
+    D_eff_55(D_ij, θ, τ)
+
+
+    D_1_m(y, D_eff_ij)
+    D_2_m(y, D_eff_ij)
+    D_3_m(y, D_eff_ij)
+    D_4_m(y, D_eff_ij)
+    D_5_m(y, D_eff_ij)
+
     ρ(P, T, R)
-    μ_i(T)[1:5]
+    
+    μ_1(T)
+    μ_2(T)
+    μ_3(T)
+    μ_4(T)
+    μ_5(T)
+
     μ(y, μ_i, M_i)
     k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
     u(α, T, P)
     Re(ρ, u, L, μ)
-    C_p_i(T)[1:5]
+
+    C_p_1(T)
+    C_p_2(T)
+    C_p_3(T)
+    C_p_4(T)
+    C_p_5(T)
+
     C_p(y, C_p_i)
-    λ_i(T)[1:5]
+    
+    λ_1(T)
+    λ_2(T)
+    λ_3(T)
+    λ_4(T)
+    λ_5(T)
+
     λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
     λ(y, T, P, R, M, λ_dash)
     h_f(ϵ_b, C_p, G, M, μ, D_cat, λ)
-    C_p_c_i(T_c(t, z, r))[1:5]
-    H_i(T)[1:5]
-    H_c_i_surface(T_c(t, z, r))[1:5]
-    r_i(y, d_cat, θ, P, T, R)[1:5]
+    
+    C_p_c_1(T_c(t, z, r))
+    C_p_c_2(T_c(t, z, r))
+    C_p_c_3(T_c(t, z, r))
+    C_p_c_4(T_c(t, z, r))
+    C_p_c_5(T_c(t, z, r))
+    
+    H_1(T)
+    H_2(T)
+    H_3(T)
+    H_4(T)
+    H_5(T)
+    
+    H_c_1_surface(T_c(t, z, r))
+    H_c_2_surface(T_c(t, z, r))
+    H_c_3_surface(T_c(t, z, r))
+    H_c_4_surface(T_c(t, z, r))
+    H_c_5_surface(T_c(t, z, r))
+    
+    r_1(y, d_cat, θ, P, T, R)
+    r_2(y, d_cat, θ, P, T, R)
+    r_3(y, d_cat, θ, P, T, R)
+    r_4(y, d_cat, θ, P, T, R)
+    r_5(y, d_cat, θ, P, T, R)
 end
+
+y = [y_1, y_2, y_3, y_4, y_5]
+C_i = [C_1, C_2, C_3, C_4, C_5]
+C_c_i = [C_c_1, C_c_2, C_c_3, C_c_4, C_c_5]
+D_ij = [D_11 D_12 D_13 D_14 D_15;
+        D_21 D_22 D_23 D_24 D_25;
+        D_31 D_32 D_33 D_34 D_35;
+        D_41 D_42 D_43 D_44 D_45;
+        D_51 D_52 D_53 D_54 D_55]
+D_eff_ij = [D_eff_11 D_eff_12 D_eff_13 D_eff_14 D_eff_15;
+            D_eff_21 D_eff_22 D_eff_23 D_eff_24 D_eff_25;
+            D_eff_31 D_eff_32 D_eff_33 D_eff_34 D_eff_35;
+            D_eff_41 D_eff_42 D_eff_43 D_eff_44 D_eff_45;
+            D_eff_51 D_eff_52 D_eff_53 D_eff_54 D_eff_55]
+D_i_m = [D_1_m, D_2_m, D_3_m, D_4_m, D_5_m]
+μ_i = [μ_1, μ_2, μ_3, μ_4, μ_5]
+C_p_i = [C_p_1, C_p_2, C_p_3, C_p_4, C_p_5]
+λ_i = [λ_1, λ_2, λ_3, λ_4, λ_5]
+C_p_c_i = [C_p_c_1, C_p_c_2, C_p_c_3, C_p_c_4, C_p_c_5]
+H_i = [H_1, H_2, H_3, H_4, H_5]
+H_c_i_surface = [H_c_1_surface, H_c_2_surface, H_c_3_surface, H_c_4_surface, H_c_5_surface]
+r_i = [r_1, r_2, r_3, r_4, r_5]
+
 
 ## Equations ##
 # 21. Gas phase species balance ## (check if broadcasting is needed) ##
