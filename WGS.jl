@@ -407,8 +407,8 @@ end
 @register_symbolic λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
 
-#@register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
-#@register_symbolic α_func(G, R) # constant
+# @register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
+# @register_symbolic α_func(G, R) # constant
 @register_symbolic Re_func(ρ, u, L, μ) # added to eqs #
 @register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # added to eqs #
 @register_symbolic ρ_func(P, T, R) # added to eqs #
@@ -423,8 +423,8 @@ end
 
 @register_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) # added to eqs #
 @register_symbolic h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ) # added to eqs #
-#@register_symbolic ϵ_b_func(D_rct, D_cat) # constant
-#@register_symbolic a_v_func(ϵ_b, D_cat) # constant
+# @register_symbolic ϵ_b_func(D_rct, D_cat) # constant
+# @register_symbolic a_v_func(ϵ_b, D_cat) # constant
  
 
 using OrdinaryDiffEq, DomainSets, MethodOfLines
