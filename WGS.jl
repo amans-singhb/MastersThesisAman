@@ -13,7 +13,6 @@
 
 ### Define functions for physical properties ###
 using Symbolics
-using ModelingToolkit
 
 ## Diffusivity ##
 
@@ -32,7 +31,7 @@ end
 
 # Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
 function D_ij_matrix_func(T, P)
-    D_ij_matrix = Matrix{Num}(undef, 5, 5)
+    D_ij_matrix = zeros(Num, 5, 5)
 
     #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error, D accounts for lack of C in eq = "a" )
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
@@ -73,7 +72,7 @@ end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
 function D_i_m_func(y, D_eff_ij)
-    D_i_m_vec = Array{Num}(undef, 5)
+    D_i_m_vec = zeros(Num, 5)
     
     for i in eachindex(y)
         denominator = 0
@@ -101,7 +100,7 @@ end
 
 # Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
 function C_p_i_vector_func(T)
-    C_p_i_vector = Array{Num}(undef, 5)
+    C_p_i_vector = zeros(Num, 5)
     
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -132,7 +131,7 @@ end
 
 # Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
 function μ_i_vector_funct(T)
-    μ_i_vector = Array{Num}(undef, 5)
+    μ_i_vector = zeros(Num, 5)
     
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
@@ -174,7 +173,7 @@ end
 
 # Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
 function λ_i_vector_func(T)
-    λ_i_vector = Array{Num}(undef, 5)
+    λ_i_vector = zeros(Num, 5)
     
     # p = [i, A, B, C, D]
     p = [1 5.1489e-4 0.6863 57.13 501.92;
@@ -316,7 +315,7 @@ end
 
 # Array of Heat capacity integrated for all species
 function C_p_i_integrated_vector_func(T)
-    C_p_i_integrated_vector = Array{Num}(undef, 5)
+    C_p_i_integrated_vector = zeros(Num, 5)
     
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -385,6 +384,7 @@ end
 
 ### Define model equations ###
 
+using ModelingToolkit
 ## Registering symbolic functions ## (Double check if all are needed)
 @register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
 @register_symbolic D_ij_func_b(P, B) # added to eqs #
@@ -426,9 +426,6 @@ end
 # @register_symbolic ϵ_b_func(D_rct, D_cat) # constant
 # @register_symbolic a_v_func(ϵ_b, D_cat) # constant
  
-
-using OrdinaryDiffEq, DomainSets, MethodOfLines
-using DelimitedFiles
 
 ### Solving PDesystem ###
 
@@ -607,6 +604,7 @@ BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i(t, z, 
 
 bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
 
+using OrdinaryDiffEq, DomainSets, MethodOfLines
 # Domain
 domains = [t ∈ Interval(0.0, 10.0),
 z ∈ Interval(0.0, L_val),
@@ -628,6 +626,7 @@ prob = discretize(WGS_pde, discretization)
 sol = solve(prob, Tsit5(), saveat=0.1)
 
 # Saving results
+using DelimitedFiles
 writedlm("WGS_results.csv", sol, ",")
 
 
