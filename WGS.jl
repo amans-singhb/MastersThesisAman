@@ -519,6 +519,8 @@ Drr = Differential(r)^2
     y_4(t, z, r)
     y_5(t, z, r)
 
+    y[1:5]
+
     C_1(..)
     C_2(..)
     C_3(..)
@@ -534,6 +536,8 @@ Drr = Differential(r)^2
     C_c_3(..)
     C_c_4(..)
     C_c_5(..)
+
+    C_c_i_surface[1:5]
 
     # Catalyst phase energy balance
     T_c(..)
@@ -571,6 +575,7 @@ Drr = Differential(r)^2
     D_54(T, P)
     D_55(T, P)
 
+    D_ij[1:5, 1:5]
 
     D_eff_11(D_ij, θ, τ)
     D_eff_12(D_ij, θ, τ)
@@ -602,12 +607,15 @@ Drr = Differential(r)^2
     D_eff_54(D_ij, θ, τ)
     D_eff_55(D_ij, θ, τ)
 
+    D_eff_ij[1:5, 1:5]
 
     D_1_m(y, D_eff_ij)
     D_2_m(y, D_eff_ij)
     D_3_m(y, D_eff_ij)
     D_4_m(y, D_eff_ij)
     D_5_m(y, D_eff_ij)
+
+    D_i_m[1:5]
 
     ρ(P, T, R)
     
@@ -616,6 +624,8 @@ Drr = Differential(r)^2
     μ_3(T)
     μ_4(T)
     μ_5(T)
+
+    μ_i[1:5]
 
     μ(y, μ_i, M_i)
     k_c_i(ρ, M, D_i_m, μ, G, ϵ_b, D_cat)
@@ -628,6 +638,8 @@ Drr = Differential(r)^2
     C_p_4(T)
     C_p_5(T)
 
+    C_p_i[1:5]
+
     C_p(y, C_p_i)
     
     λ_1(T)
@@ -635,6 +647,8 @@ Drr = Differential(r)^2
     λ_3(T)
     λ_4(T)
     λ_5(T)
+
+    λ_i[1:5]
 
     λ_dash(y, λ_i, μ, M_i, T, T_boil, C)
     λ(y, T, P, R, M, λ_dash)
@@ -666,8 +680,8 @@ Drr = Differential(r)^2
 end
 
 y = [y_1, y_2, y_3, y_4, y_5]
-C_i = [C_1, C_2, C_3, C_4, C_5]
-C_c_i = [C_c_1, C_c_2, C_c_3, C_c_4, C_c_5]
+C_i = [C_1(t, z), C_2(t, z), C_3(t, z), C_4(t, z), C_5(t, z)]
+C_c_i = [C_c_1(t, z, r), C_c_2(t, z, r), C_c_3(t, z, r), C_c_4(t, z, r), C_c_5(t, z, r)]
 D_ij = [D_11 D_12 D_13 D_14 D_15;
         D_21 D_22 D_23 D_24 D_25;
         D_31 D_32 D_33 D_34 D_35;
@@ -695,7 +709,7 @@ r_i = [r_1, r_2, r_3, r_4, r_5]
 # 24. Catalyst phase species balance
 # 25. Catalyst phase energy balance
 
-equations = [y .~ y_func(C_i(t,z)),
+equations = [y .~ y_func(C_i),
 M ~ sum(y .* M_i),
 D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
 D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ),
@@ -716,12 +730,13 @@ C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
 H_i .~ H_i_func(T(t,z)),
 H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat)),
 r_i .~ r_i_func(y, d_cat, θ, P(z), T(t,z)),
+C_c_i_surface ~ [C_c_1(t, z, rad_cat), C_c_2(t, z, rad_cat), C_c_3(t, z, rad_cat), C_c_4(t, z, rad_cat), C_c_5(t, z, rad_cat)],
 Dz(P(z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
-C_p * (P(z) / (R * T(t,z))) * Dt(T(t,z)) ~ (- C_p) * G * Dz(T(t,z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t,z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t,z)))]
+C_p * (P(z) / (R * T(t,z))) * Dt(T(t,z)) ~ (- C_p) * G * Dz(T(t,z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t,z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_surface - C_i))]
 
-DE1 = [Dt(C_i(t,z)[i]) ~ -α * (T(t,z)/P(z)) *  Dz(C_i(t,z)[i]) - C_i(t,z)[i] * α * ((1/P(z)) * Dz(T(t,z)) - (T(t,z)/P(z)^2) * Dz(P(z))) + k_c_i * a_v * (C_c_i(t, z, rad_cat)[i] - C_i(t,z)[i]) for i in 1:5]
-DE4 = [Dt(C_c_i(t,z,r)[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i(t,z,r)[i]) + D_i_m[i] * Drr(C_c_i(t,z,r)[i]) + r_i[i] for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+DE1 = [Dt(C_i[i]) ~ -α * (T(t,z)/P(z)) *  Dz(C_i[i]) - C_i[i] * α * ((1/P(z)) * Dz(T(t,z)) - (T(t,z)/P(z)^2) * Dz(P(z))) + k_c_i * a_v * (C_c_i_surface[i] - C_i[i]) for i in 1:5]
+DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
 eqs = [equations; DE1; DE4; DE5]
 
@@ -737,11 +752,11 @@ eqs = [equations; DE1; DE4; DE5]
 boundaries = [T(t, 0) ~ T_in,
 P(0) ~ P_in,
 Dz(T_c(t, z, 0)) ~ 0]
-BCS1 = [C_i(t, 0)[i] ~ C_i_in[i] for i in 1:5]
-BCS2 = [Dz(C_c_i(t, z, 0)[i]) ~ 0 for i in 1:5]
-BCS3 = [k_c_i * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5]
-STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
-BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i(t, z, rad_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP1)]
+BCS1 = [C_i[i] ~ C_i_in[i] for i in 1:5]
+BCS2 = [Dz(C_c_i[i]) ~ 0 for i in 1:5]
+BCS3 = [k_c_i * (C_c_i_surface[i] - C_i[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i_surface[i]) for i in 1:5]
+STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i_surface[i]) for i in 1:5] # the sum won't work without a for loop
+BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i_surface - C_i)) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP1)]
 
 bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
 
@@ -752,7 +767,7 @@ z ∈ Interval(0.0, L_val),
 r ∈ Interval(0.0, D_cat_val)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i, u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i[1:5], T(t, z), P(z), C_c_i[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i, u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
