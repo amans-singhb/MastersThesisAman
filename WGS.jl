@@ -527,6 +527,8 @@ Drr = Differential(r)^2
     C_4(..)
     C_5(..)
 
+    C_i[1:5]
+
     T(..)
     P(..)
 
@@ -537,6 +539,7 @@ Drr = Differential(r)^2
     C_c_4(..)
     C_c_5(..)
 
+    C_c_i[1:5]
     C_c_i_surface[1:5]
 
     # Catalyst phase energy balance
@@ -659,24 +662,32 @@ Drr = Differential(r)^2
     C_p_c_3(T_c(t, z, r))
     C_p_c_4(T_c(t, z, r))
     C_p_c_5(T_c(t, z, r))
+
+    C_p_c_i[1:5]
     
     H_1(T)
     H_2(T)
     H_3(T)
     H_4(T)
     H_5(T)
+
+    H_i[1:5]
     
     H_c_1_surface(T_c(t, z, r))
     H_c_2_surface(T_c(t, z, r))
     H_c_3_surface(T_c(t, z, r))
     H_c_4_surface(T_c(t, z, r))
     H_c_5_surface(T_c(t, z, r))
+
+    H_c_i_surface[1:5]
     
     r_1(y, d_cat, θ, P, T, R)
     r_2(y, d_cat, θ, P, T, R)
     r_3(y, d_cat, θ, P, T, R)
     r_4(y, d_cat, θ, P, T, R)
     r_5(y, d_cat, θ, P, T, R)
+
+    r_i[1:5]
 end
 
 y = [y_1, y_2, y_3, y_4, y_5]
@@ -767,7 +778,7 @@ z ∈ Interval(0.0, L_val),
 r ∈ Interval(0.0, D_cat_val)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i[1:5], T(t, z), P(z), C_c_i[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i, u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i[1:5], T(t, z), P(z), C_c_i[1:5], C_c_i_surface[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i, u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
