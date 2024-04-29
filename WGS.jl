@@ -548,11 +548,11 @@ Drr = Differential(r)^2
 end
 
 ## Equations ##
-# 21. Gas phase species balance ## (check if broadcasting is needed) ##
-# 22. Gas phase momentum balance
-# 23. Gas phase energy balance
-# 24. Catalyst phase species balance
-# 25. Catalyst phase energy balance
+# DE1. Gas phase species balance ## (check if broadcasting is needed) ##
+# equations3[end-1]. Gas phase momentum balance
+# equations3[end]. Gas phase energy balance
+# DE4. Catalyst phase species balance
+# DE5. Catalyst phase energy balance
 
 equations1 = [y .~ y_func(C_i(t,z)),
     μ_i .~ μ_i_vector_funct(T(t,z)),
@@ -588,13 +588,13 @@ DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_
 # eqs = [equations1; equations2; equations3; DE1; DE4; DE5]
 eqs =[equations3; DE1; DE4; DE5]
 ## Boundary conditions ##
-# 1. T at reactor inlet
-# 2. C_i at reactor inlet
-# 3. P at reactor inlet
-# 4. dT_c/dz at catalyst center
-# 5. dC_c_i/dz at catalyst center
-# 6. conditions at catalyst surface
-# 7. conditions at catalyst surface
+# boundaries[1]. T at reactor inlet
+# BCS1. C_i at reactor inlet
+# boundaries[2]. P at reactor inlet
+# boundaries[3]. dT_c/dz at catalyst center
+# BCS2. dC_c_i/dz at catalyst center
+# BCS3. conditions at catalyst surface
+# BCS4. conditions at catalyst surface
 
 boundaries = [T(t, 0) ~ T_in,
 P(0) ~ P_in,
