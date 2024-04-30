@@ -125,27 +125,17 @@ end
 ## Viscosity ##
 
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
-function μ_i_func(T, A, B, C, D)
-    (A * abs(T)^B) / (1 + C / T + D / T^2)
-end
-
-# Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
-function μ_i_vector_funct(T)
-    μ_i_vector = zeros(Num, 5)
-    
-    # p = [i, A, B, C, D]
+function μ_i_func(T, i)
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
         3 1.797e-7 0.685 -0.59 140;
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
-    
-    for row in eachrow(p)
-        i = Int(row[1])
-        μ_i_vector[i] = μ_i_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return μ_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return (A * abs(T)^B) / (1 + C / T + D / T^2)
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
@@ -397,8 +387,7 @@ using ModelingToolkit
 @register_symbolic C_p_i_vector_func(T) # added to eqs #
 @register_symbolic C_p_func(y, C_p_i) # added to eqs #
 
-@register_symbolic μ_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic μ_i_vector_funct(T) # added to eqs #
+@register_symbolic μ_i_func(T, i) # added to eqs #
 @register_symbolic μ_mix_func(y, μ_i, M_i) # added to eqs #
 
 @register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
@@ -555,7 +544,7 @@ end
 # DE5. Catalyst phase energy balance
 
 equations1 = [y[i] ~ y_func(C_i(t,z), i),
-    μ_i .~ μ_i_vector_funct(T(t,z)),
+    μ_i[i] ~ μ_i_func(T(t,z), i),
     C_p_i .~ C_p_i_vector_func(T(t,z)),
     λ_i .~ λ_i_vector_func(T(t,z)),
     C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
