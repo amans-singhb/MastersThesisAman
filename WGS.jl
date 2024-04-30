@@ -127,7 +127,7 @@ function μ_i_func(T, i)
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
-    return (A * abs(T)^B) / (1 + C / T + D / T^2)
+    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
@@ -149,14 +149,7 @@ end
 ## Thermal conductivity ##
 
 # Thermal conductivity of gas phase of species i {T [K], λ [kcal/h m K]}
-function λ_i_func(T, A, B, C, D)
-    (A * abs(T)^B) / (1 + C / T + D / T^2)
-end
-
-# Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
-function λ_i_vector_func(T)
-    λ_i_vector = zeros(Num, 5)
-    
+function λ_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 5.1489e-4 0.6863 57.13 501.92;
         2 3.1728 -0.3838 964 1.86e6;
@@ -164,12 +157,10 @@ function λ_i_vector_func(T)
         4 5.3345e-6 1.3973 0 0;
         5 2.8497e-4 0.7722 16.323 373.72]
 
-    for row in eachrow(p)
-        i = Int(row[1])
-        λ_i_vector[i] = λ_i_func(T, row[2], row[3], row[4], row[5])
-    end
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
 
-    return λ_i_vector
+    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
@@ -381,8 +372,7 @@ using ModelingToolkit
 @register_symbolic μ_i_func(T, i) # added to eqs #
 @register_symbolic μ_mix_func(y, μ_i, M_i) # added to eqs #
 
-@register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic λ_i_vector_func(T) # added to eqs #
+@register_symbolic λ_i_func(T, i) # added to eqs #
 @register_symbolic A_ij_func(i, j, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
@@ -537,7 +527,7 @@ end
 equations1 = [y[i] ~ y_func(C_i(t,z), i),
     μ_i[i] ~ μ_i_func(T(t,z), i),
     C_p_i[i] ~ C_p_i_func(T(t,z), i),
-    λ_i .~ λ_i_vector_func(T(t,z)),
+    λ_i[i] ~ λ_i_func(T(t,z), i),
     C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
     H_i .~ H_i_func(T(t,z)),
     H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat))]
