@@ -514,13 +514,14 @@ end
 # DE4. Catalyst phase species balance
 # DE5. Catalyst phase energy balance
 
-equations1 = [y[i] ~ y_func(C_i(t,z), i),
-    μ_i[i] ~ μ_i_func(T(t,z), i),
-    C_p_i[i] ~ C_p_i_func(T(t,z), i),
-    λ_i[i] ~ λ_i_func(T(t,z), i),
-    C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i),
-    H_i[i] ~ H_i_func(T(t,z), i),
-    H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i)]
+equations_y = [y[i] ~ y_func(C_i(t,z), i) for i in 1:5]
+equations_μ = [μ_i[i] ~ μ_i_func(T(t,z), i) for i in 1:5]
+equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(t,z), i) for i in 1:5]
+equations_λ = [λ_i[i] ~ λ_i_func(T(t,z), i) for i in 1:5]
+equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i) for i in 1:5]
+equations_H_i = [H_i[i] ~ H_i_func(T(t,z), i) for i in 1:5]
+equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i) for i in 1:5]
+equations1 = [equations_y; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface]
 
 equations2 = [D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
     D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ)]
