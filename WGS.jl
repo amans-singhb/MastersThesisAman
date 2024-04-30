@@ -94,27 +94,18 @@ end
 ## Heat capacity ##
 
 # Heat capacity for i {T [K], C_p_i [cal/mol K]}
-function C_p_i_func(T, A, B, C, D)
-    A + B * T + C * T^2 + D / T^2
-end
-
-# Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
-function C_p_i_vector_func(T)
-    C_p_i_vector = zeros(Num, 5)
-    
+function C_p_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
         3 6.62 0.81e-3 0 0;
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
-    
-    for row in eachrow(p)
-        i = row[1]
-        C_p_i_vector[i] = C_p_i_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return C_p_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return A + B * T + C * T^2 + D / abs(T)^2
 end
 
 # Heat capacity of mixture ###[TESTED]###
@@ -126,6 +117,7 @@ end
 
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
 function μ_i_func(T, i)
+    # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
         3 1.797e-7 0.685 -0.59 140;
@@ -383,8 +375,7 @@ using ModelingToolkit
 @register_symbolic D_eff_ij_func(D_ij, θ, τ) # added to eqs #
 @register_symbolic D_i_m_func(y, D_eff_ij) # added to eqs #
 
-@register_symbolic C_p_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic C_p_i_vector_func(T) # added to eqs #
+@register_symbolic C_p_i_func(T, i) # added to eqs #
 @register_symbolic C_p_func(y, C_p_i) # added to eqs #
 
 @register_symbolic μ_i_func(T, i) # added to eqs #
@@ -545,7 +536,7 @@ end
 
 equations1 = [y[i] ~ y_func(C_i(t,z), i),
     μ_i[i] ~ μ_i_func(T(t,z), i),
-    C_p_i .~ C_p_i_vector_func(T(t,z)),
+    C_p_i[i] ~ C_p_i_func(T(t,z), i),
     λ_i .~ λ_i_vector_func(T(t,z)),
     C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
     H_i .~ H_i_func(T(t,z)),
