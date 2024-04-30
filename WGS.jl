@@ -304,8 +304,8 @@ function u_func(α, T, P)
 end
 
 # Molar fraction of i in the gas phase
-function y_func(C_i)
-    C_i / sum(C_i)
+function y_func(C_i, i)
+    C_i[i] / sum(C_i)
 end
 
 # Heat capacity integrated for i {T [K], C_p_i [cal/mol K]}
@@ -413,7 +413,7 @@ using ModelingToolkit
 @register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # added to eqs #
 @register_symbolic ρ_func(P, T, R) # added to eqs #
 @register_symbolic u_func(α, T, P) # added to eqs #
-@register_symbolic y_func(C_i) # added to eqs #
+@register_symbolic y_func(C_i, i) # added to eqs #
 
 @register_symbolic C_p_i_integrated_func(T, A, B, C, D) # added to eqs #
 @register_symbolic C_p_i_integrated_vector_func(T) # added to eqs #
@@ -554,7 +554,7 @@ end
 # DE4. Catalyst phase species balance
 # DE5. Catalyst phase energy balance
 
-equations1 = [y .~ y_func(C_i(t,z)),
+equations1 = [y[i] ~ y_func(C_i(t,z), i),
     μ_i .~ μ_i_vector_funct(T(t,z)),
     C_p_i .~ C_p_i_vector_func(T(t,z)),
     λ_i .~ λ_i_vector_func(T(t,z)),
@@ -566,17 +566,17 @@ equations2 = [D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
     D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ)]
 
 equations3 = [M ~ sum(y .* M_i),
-    D_i_m ~ D_i_m_func(y, D_eff_ij),
+    D_i_m ~ D_i_m_func(y, D_eff_ij), # check
     ρ ~ ρ_func(P(z), T(t,z), R),
     μ ~ μ_mix_func(y, μ_i, M_i),
-    k_c_i ~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
+    k_c_i ~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat), # check
     u ~ u_func(α, T(t,z), P(z)),
     Re ~ Re_func(ρ, u, L, μ),
     C_p ~ C_p_func(y, C_p_i),
     λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(t,z), T_boil, C),
     λ ~ λ_func(y, T(t,z), P(z), R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    r_i ~ r_i_func(y, d_cat, θ, P(z), T(t,z)),
+    r_i ~ r_i_func(y, d_cat, θ, P(z), T(t,z)), # check
     Dz(P(z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
     C_p * (P(z) / (R * T(t,z))) * Dt(T(t,z)) ~ (- C_p) * G * Dz(T(t,z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t,z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t,z)))]
 
@@ -586,7 +586,8 @@ DE4 = [Dt(C_c_i(t,z,r)[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i(t,
 DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
 # eqs = [equations1; equations2; equations3; DE1; DE4; DE5]
-eqs =[equations3; DE1; DE4; DE5]
+#eqs =[equations3; DE1; DE4; DE5]
+eqs = equations3
 ## Boundary conditions ##
 # boundaries[1]. T at reactor inlet
 # BCS1. C_i at reactor inlet
