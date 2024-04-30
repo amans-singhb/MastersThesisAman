@@ -528,7 +528,7 @@ equations1 = [y[i] ~ y_func(C_i(t,z), i),
     μ_i[i] ~ μ_i_func(T(t,z), i),
     C_p_i[i] ~ C_p_i_func(T(t,z), i),
     λ_i[i] ~ λ_i_func(T(t,z), i),
-    C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
+    C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i),
     H_i .~ H_i_func(T(t,z)),
     H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat))]
 
