@@ -282,37 +282,28 @@ function y_func(C_i, i)
 end
 
 # Heat capacity integrated for i {T [K], C_p_i [cal/mol K]}
-function C_p_i_integrated_func(T, A, B, C, D)
-    A * T + B/2 * T^2 + C/3 * T^3 - D / T
-end
-
-# Array of Heat capacity integrated for all species
-function C_p_i_integrated_vector_func(T)
-    C_p_i_integrated_vector = zeros(Num, 5)
-    
+function C_p_i_integrated_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
         3 6.62 0.81e-3 0 0;
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
-    
-    for row in eachrow(p)
-        i = row[1]
-        C_p_i_integrated_vector[i] = C_p_i_integrated_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return C_p_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return A * T + B/2 * T^2 + C/3 * T^3 - D / T
 end
 
 # Enthalpy of i
-function H_i_func(T)
+function H_i_func(T, i)
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
-    C_p_i_integrated_vector_298 = C_p_i_integrated_vector_func(298)
-    C_p_i_integrated_vector_T = C_p_i_integrated_vector_func(T)
+    C_p_i_integrated_298 = C_p_i_integrated_func(298, i)
+    C_p_i_integrated_T = C_p_i_integrated_func(T, i)
 
-    H_i = H_form + (C_p_i_integrated_vector_T - C_p_i_integrated_vector_298)
+    H_i = H_form[i] + (C_p_i_integrated_T - C_p_i_integrated_298)
 
     return H_i
 end
@@ -385,9 +376,8 @@ using ModelingToolkit
 @register_symbolic u_func(α, T, P) # added to eqs #
 @register_symbolic y_func(C_i, i) # added to eqs #
 
-@register_symbolic C_p_i_integrated_func(T, A, B, C, D) # added to eqs #
-@register_symbolic C_p_i_integrated_vector_func(T) # added to eqs #
-@register_symbolic H_i_func(T) # added to eqs #
+@register_symbolic C_p_i_integrated_func(T, i) # added to eqs #
+@register_symbolic H_i_func(T, i) # added to eqs #
 
 @register_symbolic r_i_func(y, d_cat, θ, P, T) # added to eqs #
 
@@ -529,8 +519,8 @@ equations1 = [y[i] ~ y_func(C_i(t,z), i),
     C_p_i[i] ~ C_p_i_func(T(t,z), i),
     λ_i[i] ~ λ_i_func(T(t,z), i),
     C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i),
-    H_i .~ H_i_func(T(t,z)),
-    H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat))]
+    H_i[i] ~ H_i_func(T(t,z), i),
+    H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i)]
 
 equations2 = [D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
     D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ)]
