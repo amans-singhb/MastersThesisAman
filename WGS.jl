@@ -410,6 +410,7 @@ C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
 D_cat_val = 0.25e-3 # [m]
 rad_cat_val = 0.5 * D_cat_val # [m]
 D_rct = 12.7e-3 # [m]
+rad_rct = 0.5 * D_rct # [m]
 L_val = 4.8e-3 # [m]
 
 # Fixed
@@ -578,16 +579,16 @@ bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
 
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 # Domain
-domains = [t ∈ Interval(0.0, 1.0),
+domains = [t ∈ Interval(0.0, 10.0),
     z ∈ Interval(0.0, L_val),
-    r ∈ Interval(0.0, rad_cat_val)]
+    r ∈ Interval(0.0, rad_rct)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [(y[1:5]), C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
-dr = rad_cat_val/100
+dr = rad_rct/100
 order = 2
 discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
