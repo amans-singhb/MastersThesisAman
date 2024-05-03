@@ -18,7 +18,7 @@ using Symbolics
 
 # Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
 function D_ij_func_a(T, P, A, B, C, D, E, F)
-    (A * abs(T)^B / P) * abs((log(C / abs(T))))^(-2 * D) * exp(-E / T - F / T^2)
+    (A * abs(T)^B / P) * abs((log(C / abs(T))))^(-2 * D) * exp(-E / T - F / abs(T)^2)
 end
 
 function D_ij_func_b(P, B)
@@ -30,9 +30,7 @@ function D_ij_func_c(T, P, A, B)
 end
 
 # Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
-function D_ij_matrix_func(T, P)
-    D_ij_matrix = zeros(Num, 5, 5)
-
+function D_ij_matrix_func(T, P, D_ij_matrix) 
     #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error, D accounts for lack of C in eq = "a" )
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
         "a" 3 2 3.14e-5 1.75 1 0 11.7 0;
@@ -62,6 +60,7 @@ function D_ij_matrix_func(T, P)
             return
         end
     end
+
     return D_ij_matrix
 end
 
@@ -71,13 +70,14 @@ function D_eff_ij_func(D_ij, θ, τ)
 end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
-function D_i_m_func(y, D_eff_ij)
-    D_i_m_vec = zeros(Num, 5)
+function D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix)
+    D_ij = D_ij_matrix_func(T, P, D_ij_matrix)
+    D_eff_ij = D_eff_ij_func(D_ij, θ, τ)
     
     for i in eachindex(y)
+        i = i[1]
         denominator = 0
-        index = i[1]
-        row = D_eff_ij[index, :]
+        row = D_eff_ij[i, :]
 
         for j in eachindex(y)
             if j != i
@@ -94,27 +94,18 @@ end
 ## Heat capacity ##
 
 # Heat capacity for i {T [K], C_p_i [cal/mol K]}
-function C_p_i_func(T, A, B, C, D)
-    A + B * T + C * T^2 + D / T^2
-end
-
-# Array of Heat capacity for all species (SPECIFIC TO THE SYSTEM)
-function C_p_i_vector_func(T)
-    C_p_i_vector = zeros(Num, 5)
-    
+function C_p_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
         3 6.62 0.81e-3 0 0;
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
-    
-    for row in eachrow(p)
-        i = row[1]
-        C_p_i_vector[i] = C_p_i_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return C_p_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return A + B * T + C * T^2 + D / abs(T)^2
 end
 
 # Heat capacity of mixture ###[TESTED]###
@@ -125,27 +116,18 @@ end
 ## Viscosity ##
 
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
-function μ_i_func(T, A, B, C, D)
-    (A * abs(T)^B) / (1 + C / T + D / T^2)
-end
-
-# Array of viscosity for all species (SPECIFIC TO THE SYSTEM)
-function μ_i_vector_funct(T)
-    μ_i_vector = zeros(Num, 5)
-    
+function μ_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
         3 1.797e-7 0.685 -0.59 140;
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
-    
-    for row in eachrow(p)
-        i = Int(row[1])
-        μ_i_vector[i] = μ_i_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return μ_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Viscosity of gas phase mixture ###[TESTED]###
@@ -167,14 +149,7 @@ end
 ## Thermal conductivity ##
 
 # Thermal conductivity of gas phase of species i {T [K], λ [kcal/h m K]}
-function λ_i_func(T, A, B, C, D)
-    (A * abs(T)^B) / (1 + C / T + D / T^2)
-end
-
-# Array of thermal conductivity for all species (SPECIFIC TO THE SYSTEM)
-function λ_i_vector_func(T)
-    λ_i_vector = zeros(Num, 5)
-    
+function λ_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 5.1489e-4 0.6863 57.13 501.92;
         2 3.1728 -0.3838 964 1.86e6;
@@ -182,12 +157,10 @@ function λ_i_vector_func(T)
         4 5.3345e-6 1.3973 0 0;
         5 2.8497e-4 0.7722 16.323 373.72]
 
-    for row in eachrow(p)
-        i = Int(row[1])
-        λ_i_vector[i] = λ_i_func(T, row[2], row[3], row[4], row[5])
-    end
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
 
-    return λ_i_vector
+    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Binary interaction parameter A_ij ###[TESTED]###
@@ -304,42 +277,33 @@ function u_func(α, T, P)
 end
 
 # Molar fraction of i in the gas phase
-function y_func(C_i)
-    C_i / sum(C_i)
+function y_func(C_i, i)
+    C_i[i] / sum(C_i)
 end
 
 # Heat capacity integrated for i {T [K], C_p_i [cal/mol K]}
-function C_p_i_integrated_func(T, A, B, C, D)
-    A * T + B/2 * T^2 + C/3 * T^3 - D / T
-end
-
-# Array of Heat capacity integrated for all species
-function C_p_i_integrated_vector_func(T)
-    C_p_i_integrated_vector = zeros(Num, 5)
-    
+function C_p_i_integrated_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
         3 6.62 0.81e-3 0 0;
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
-    
-    for row in eachrow(p)
-        i = row[1]
-        C_p_i_integrated_vector[i] = C_p_i_integrated_func(T, row[2], row[3], row[4], row[5])
-    end
 
-    return C_p_i_vector
+    row = p[i, :]
+    A, B, C, D = row[2], row[3], row[4], row[5]
+
+    return A * T + B/2 * T^2 + C/3 * T^3 - D / T
 end
 
 # Enthalpy of i
-function H_i_func(T)
+function H_i_func(T, i)
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
-    C_p_i_integrated_vector_298 = C_p_i_integrated_vector_func(298)
-    C_p_i_integrated_vector_T = C_p_i_integrated_vector_func(T)
+    C_p_i_integrated_298 = C_p_i_integrated_func(298, i)
+    C_p_i_integrated_T = C_p_i_integrated_func(T, i)
 
-    H_i = H_form + (C_p_i_integrated_vector_T - C_p_i_integrated_vector_298)
+    H_i = H_form[i] + (C_p_i_integrated_T - C_p_i_integrated_298)
 
     return H_i
 end
@@ -389,20 +353,18 @@ using ModelingToolkit
 @register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
 @register_symbolic D_ij_func_b(P, B) # added to eqs #
 @register_symbolic D_ij_func_c(T, P, A, B) # added to eqs #
-@register_symbolic D_ij_matrix_func(T, P) # added to eqs #
+@register_symbolic D_ij_matrix_func(T, P, D_ij_matrix) # added to eqs #
 @register_symbolic D_eff_ij_func(D_ij, θ, τ) # added to eqs #
-@register_symbolic D_i_m_func(y, D_eff_ij) # added to eqs #
+@register_symbolic D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix) # added to eqs #
 
-@register_symbolic C_p_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic C_p_i_vector_func(T) # added to eqs #
+
+@register_symbolic C_p_i_func(T, i) # added to eqs #
 @register_symbolic C_p_func(y, C_p_i) # added to eqs #
 
-@register_symbolic μ_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic μ_i_vector_funct(T) # added to eqs #
+@register_symbolic μ_i_func(T, i) # added to eqs #
 @register_symbolic μ_mix_func(y, μ_i, M_i) # added to eqs #
 
-@register_symbolic λ_i_func(T, A, B, C, D) # added to eqs #
-@register_symbolic λ_i_vector_func(T) # added to eqs #
+@register_symbolic λ_i_func(T, i) # added to eqs #
 @register_symbolic A_ij_func(i, j, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C) # added to eqs #
 @register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
@@ -413,11 +375,10 @@ using ModelingToolkit
 @register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # added to eqs #
 @register_symbolic ρ_func(P, T, R) # added to eqs #
 @register_symbolic u_func(α, T, P) # added to eqs #
-@register_symbolic y_func(C_i) # added to eqs #
+@register_symbolic y_func(C_i, i) # added to eqs #
 
-@register_symbolic C_p_i_integrated_func(T, A, B, C, D) # added to eqs #
-@register_symbolic C_p_i_integrated_vector_func(T) # added to eqs #
-@register_symbolic H_i_func(T) # added to eqs #
+@register_symbolic C_p_i_integrated_func(T, i) # added to eqs #
+@register_symbolic H_i_func(T, i) # added to eqs #
 
 @register_symbolic r_i_func(y, d_cat, θ, P, T) # added to eqs #
 
@@ -449,6 +410,7 @@ C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
 D_cat_val = 0.25e-3 # [m]
 rad_cat_val = 0.5 * D_cat_val # [m]
 D_rct = 12.7e-3 # [m]
+rad_rct = 0.5 * D_rct # [m]
 L_val = 4.8e-3 # [m]
 
 # Fixed
@@ -526,9 +488,9 @@ Drr = Differential(r)^2
 
     # Other
     M(y)
-    D_ij(T, P)[1:5, 1:5]
-    D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-    D_i_m(y, D_eff_ij)[1:5]
+    # D_ij(T, P)[1:5, 1:5]
+    # D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
+    D_i_m(y, θ, τ, T(t,z), P(z))[1:5]
     ρ(P, T, R)
     μ_i(T)[1:5]
     μ(y, μ_i, M_i)
@@ -554,29 +516,37 @@ end
 # DE4. Catalyst phase species balance
 # DE5. Catalyst phase energy balance
 
-equations1 = [y .~ y_func(C_i(t,z)),
-    μ_i .~ μ_i_vector_funct(T(t,z)),
-    C_p_i .~ C_p_i_vector_func(T(t,z)),
-    λ_i .~ λ_i_vector_func(T(t,z)),
-    C_p_c_i .~ C_p_i_vector_func(T_c(t, z, r)),
-    H_i .~ H_i_func(T(t,z)),
-    H_c_i_surface .~ H_i_func(T_c(t, z, rad_cat))]
+import ModelingToolkit: scalarize
 
-equations2 = [D_ij .~ D_ij_matrix_func(T(t,z), P(z)),
-    D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ)]
+equations_y = [y[i] ~ y_func(C_i(t,z), i) for i in 1:5]
+equations_μ = [μ_i[i] ~ μ_i_func(T(t,z), i) for i in 1:5]
+equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(t,z), i) for i in 1:5]
+equations_λ = [λ_i[i] ~ λ_i_func(T(t,z), i) for i in 1:5]
+equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i) for i in 1:5]
+equations_H_i = [H_i[i] ~ H_i_func(T(t,z), i) for i in 1:5]
+equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i) for i in 1:5]
+equations1 = [equations_y; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface]
+
+# Matrix and vector for D_ij and D_i_m
+matrix_D_ij = zeros(Num, 5, 5)
+vector_D_i_m = zeros(Num, 5)
+
+# equations_D_ij = [scalarize(D_ij[1:5,1:5] .~ D_ij_matrix_func(T(t,z), P(z), matrix_D_ij))...]
+# equations_D_eff_ij = [scalarize(D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ))...]
+equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(y, θ, τ, vector_D_i_m, T(t,z), P(z), matrix_D_ij))...]
+equations_k_c_i = [scalarize(k_c_i[1:5] .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
+equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y, d_cat, θ, P(z), T(t,z)))...]
+equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
 
 equations3 = [M ~ sum(y .* M_i),
-    D_i_m ~ D_i_m_func(y, D_eff_ij),
     ρ ~ ρ_func(P(z), T(t,z), R),
     μ ~ μ_mix_func(y, μ_i, M_i),
-    k_c_i ~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat),
     u ~ u_func(α, T(t,z), P(z)),
     Re ~ Re_func(ρ, u, L, μ),
     C_p ~ C_p_func(y, C_p_i),
     λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(t,z), T_boil, C),
     λ ~ λ_func(y, T(t,z), P(z), R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    r_i ~ r_i_func(y, d_cat, θ, P(z), T(t,z)),
     Dz(P(z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re),
     C_p * (P(z) / (R * T(t,z))) * Dt(T(t,z)) ~ (- C_p) * G * Dz(T(t,z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t,z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t,z)))]
 
@@ -585,8 +555,8 @@ DE1 = [Dt(C_i(t,z)[i]) ~ -α * (T(t,z)/P(z)) *  Dz(C_i(t,z)[i]) - C_i(t,z)[i] * 
 DE4 = [Dt(C_c_i(t,z,r)[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i(t,z,r)[i]) + D_i_m[i] * Drr(C_c_i(t,z,r)[i]) + r_i[i] for i in 1:5]
 DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
-# eqs = [equations1; equations2; equations3; DE1; DE4; DE5]
-eqs =[equations3; DE1; DE4; DE5]
+eqs = [equations1; equations2; equations3; DE1; DE4; DE5]
+
 ## Boundary conditions ##
 # boundaries[1]. T at reactor inlet
 # BCS1. C_i at reactor inlet
@@ -610,15 +580,15 @@ bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 # Domain
 domains = [t ∈ Interval(0.0, 10.0),
-z ∈ Interval(0.0, L_val),
-r ∈ Interval(0.0, D_cat_val)]
+    z ∈ Interval(0.0, L_val),
+    r ∈ Interval(0.0, rad_rct)]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_ij[1:5, 1:5], D_eff_ij[1:5, 1:5], D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(t, z)[1:5], T(t, z), P(z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
 
 # Discretization
 dz = L_val/100
-dr = D_cat_val/100
+dr = rad_rct/100
 order = 2
 discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
@@ -689,5 +659,3 @@ writedlm("WGS_results.csv", sol, ",")
 # # ρ1 = 0.4121
 
 # λ_test = λ_func(y, T, P, R, M, k_dash)
-
-
