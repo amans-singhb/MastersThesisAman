@@ -14,6 +14,8 @@
 ### Define functions for physical properties ###
 using Symbolics
 
+using Infiltrator
+
 ## Diffusivity ##
 
 # Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
@@ -46,6 +48,7 @@ function D_ij_matrix_func(T, P, D_ij_matrix)
     for row in eachrow(p)
         i = row[2]
         j = row[3]
+        @infiltrate (i == Nothing || j == Nothing)
         if row[1] == "a"
             D_ij_matrix[i, j] = D_ij_func_a(T, P, row[4], row[5], row[6], row[7], row[8], row[9])
             D_ij_matrix[j, i] = D_ij_matrix[i, j]
@@ -75,11 +78,13 @@ function D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix)
     D_eff_ij = D_eff_ij_func(D_ij, θ, τ)
     
     for i in eachindex(y)
+        @infiltrate i == Nothing
         i = i[1]
         denominator = 0
         row = D_eff_ij[i, :]
 
         for j in eachindex(y)
+            @infiltrate j == Nothing
             if j != i
                 denominator += y[j] / row[j]
             end
@@ -102,6 +107,7 @@ function C_p_i_func(T, i)
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
 
+    @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -124,6 +130,7 @@ function μ_i_func(T, i)
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
 
+    @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -135,9 +142,11 @@ function μ_mix_func(y, μ_i, M_i)
     μ_mix = 0
 
     for i in eachindex(y)
+        @infiltrate i == Nothing
         numerator = y[i] * μ_i[i]
         denominator = 0
         for j in eachindex(y)
+            @infiltrate j == Nothing
             denominator += y[j] * sqrt(M_i[j] / M_i[i])
         end
         μ_mix += numerator / denominator
@@ -157,6 +166,7 @@ function λ_i_func(T, i)
         4 5.3345e-6 1.3973 0 0;
         5 2.8497e-4 0.7722 16.323 373.72]
 
+    @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -165,6 +175,7 @@ end
 
 # Binary interaction parameter A_ij ###[TESTED]###
 function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
+    @infiltrate (i == Nothing || j == Nothing)
     if i == j
         return 1.0
     else
@@ -182,10 +193,12 @@ function λ_dash_func(y, λ, μ_i, M_i, T, T_boil, C)
     λ_dash = 0
 
     for i in eachindex(y)
+        @infiltrate i == Nothing
         i = Int(i[1])
         numerator = y[i] * λ[i]
         denominator = 0
         for j in eachindex(y)
+            @infiltrate j == Nothing
             j = Int(j[1])
             denominator += y[j] * A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
         end
@@ -278,6 +291,7 @@ end
 
 # Molar fraction of i in the gas phase
 function y_func(C_i, i)
+    @infiltrate i == Nothing
     C_i[i] / sum(C_i)
 end
 
@@ -290,6 +304,7 @@ function C_p_i_integrated_func(T, i)
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
 
+    @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -298,6 +313,7 @@ end
 
 # Enthalpy of i
 function H_i_func(T, i)
+    @infiltrate i == Nothing
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
     C_p_i_integrated_298 = C_p_i_integrated_func(298, i)
@@ -423,7 +439,7 @@ V_flow_0 = (F_0 * R_atmm3 * T_in) / P_in # [m3/h]
 C_i_in = y_0 * (F_0 / V_flow_0) # [mol/m3]
 
 D_cat_val = 0.25e-3 # [m]
-rad_cat_val = 0.5 * D_cat_val # [m]
+rad_cat = 0.5 * D_cat_val # [m]
 D_rct = 12.7e-3 # [m]
 rad_rct = 0.5 * D_rct # [m]
 L_val = 4.8e-3 # [m]
@@ -463,7 +479,7 @@ a_v_val = a_v_func(ϵ_b_val, D_cat_val)
     # Gas phase momentum balance
     G # function, constant
     D_cat
-    rad_cat
+    # rad_cat
     ϵ_b # function, constant
     L
 
@@ -488,40 +504,40 @@ Dr = Differential(r)
 Drr = Differential(r)^2
 
 ## Variables ##
-@variables begin
+vars = @variables begin
     # Gas phase species balance
-    y(z)[1:5] = zeros(5)
-    C_i(..)[1:5] = zeros(5)
+    y(t, z)[1:5]
+    C_i(..)[1:5]
     T(..)
     P(..)
 
     # Catalyst phase species balance
-    C_c_i(..)[1:5] = zeros(5)
+    C_c_i(..)[1:5]
 
     # Catalyst phase energy balance
     T_c(..)
 
     # Other
-    M(z)
+    M(t, z)
     # D_ij(T, P)[1:5, 1:5]
     # D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-    D_i_m(z)[1:5] = zeros(5)
-    ρ(z)
-    μ_i(z)[1:5] = zeros(5)
-    μ(z)
-    k_c_i(z)[1:5] = zeros(5)
-    u(z)
-    Re(z)
-    C_p_i(z)[1:5] = zeros(5)
-    C_p(z)
-    λ_i(z)[1:5] = zeros(5)
-    λ_dash(z)
-    λ(z)
-    h_f(z)
-    C_p_c_i(z, r)[1:5] = zeros(5)
-    H_i(z)[1:5] = zeros(5)
-    H_c_i_surface(T_c(z, r))[1:5] = zeros(5)
-    r_i(z)[1:5] = zeros(5)
+    D_i_m(t, z)[1:5]
+    ρ(t, z)
+    μ_i(t, z)[1:5]
+    μ(t, z)
+    k_c_i(t, z)[1:5]
+    u(t, z)
+    Re(t, z)
+    C_p_i(t, z)[1:5]
+    C_p(t, z)
+    λ_i(t, z)[1:5]
+    λ_dash(t, z)
+    λ(t, z)
+    h_f(t, z)
+    C_p_c_i(t, z, r)[1:5]
+    H_i(t, z)[1:5]
+    H_c_i_surface(t, z, r)[1:5]
+    r_i(t, z)[1:5]
 end
 
 ## Equations ##
@@ -533,42 +549,42 @@ end
 
 import ModelingToolkit: scalarize
 
-equations_y = [y[i] ~ y_func(C_i(z), i) for i in 1:5]
-equations_μ = [μ_i[i] ~ μ_i_func(T(z), i) for i in 1:5]
-equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(z), i) for i in 1:5]
-equations_λ = [λ_i[i] ~ λ_i_func(T(z), i) for i in 1:5]
-equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(z, r), i) for i in 1:5]
-equations_H_i = [H_i[i] ~ H_i_func(T(z), i) for i in 1:5]
-equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(z, rad_cat), i) for i in 1:5]
+equations_y = [y[i] ~ y_func(C_i(t, z), i) for i in 1:5]
+equations_μ = [μ_i[i] ~ μ_i_func(T(t, z), i) for i in 1:5]
+equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(t, z), i) for i in 1:5]
+equations_λ = [λ_i[i] ~ λ_i_func(T(t, z), i) for i in 1:5]
+equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i) for i in 1:5]
+equations_H_i = [H_i[i] ~ H_i_func(T(t, z), i) for i in 1:5]
+equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i) for i in 1:5]
 equations1 = [equations_y; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface]
 
 # Matrix and vector for D_ij and D_i_m
 matrix_D_ij = zeros(Num, 5, 5)
 vector_D_i_m = zeros(Num, 5)
 
-# equations_D_ij = [scalarize(D_ij[1:5,1:5] .~ D_ij_matrix_func(T(z), P(z), matrix_D_ij))...]
+# equations_D_ij = [scalarize(D_ij[1:5,1:5] .~ D_ij_matrix_func(T(t, z), P(t, z), matrix_D_ij))...]
 # equations_D_eff_ij = [scalarize(D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ))...]
-equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(y, θ, τ, vector_D_i_m, T(z), P(z), matrix_D_ij))...]
+equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(y, θ, τ, vector_D_i_m, T(t, z), P(t, z), matrix_D_ij))...]
 equations_k_c_i = [scalarize(k_c_i[1:5] .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
-equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y, d_cat, θ, P(z), T(z)))...]
+equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y, d_cat, θ, P(t, z), T(t, z)))...]
 equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
 
 equations3 = [M ~ sum(y .* M_i),
-    ρ ~ ρ_func(P(z), T(z), R),
+    ρ ~ ρ_func(P(t, z), T(t, z), R),
     μ ~ μ_mix_func(y, μ_i, M_i),
-    u ~ u_func(α, T(z), P(z)),
+    u ~ u_func(α, T(t, z), P(t, z)),
     Re ~ Re_func(ρ, u, L, μ),
     C_p ~ C_p_func(y, C_p_i),
-    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(z), T_boil, C),
-    λ ~ λ_func(y, T(z), P(z), R, M, λ_dash),
+    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(t, z), T_boil, C),
+    λ ~ λ_func(y, T(t, z), P(t, z), R, M, λ_dash),
     h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ)]
 
 
-DE1 = [Dt(C_i(z)[i]) ~ -α * (T(z)/P(z)) *  Dz(C_i(z)[i]) - C_i(z)[i] * α * ((1/P(z)) * Dz(T(z)) - (T(z)/P(z)^2) * Dz(P(z))) + k_c_i[i] * a_v * (C_c_i(z, rad_cat)[i] - C_i(z)[i]) for i in 1:5]
-DE2 = [Dz(P(z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re)]
-DE3 = [C_p * (P(z) / (R * T(z))) * Dt(T(z)) ~ (- C_p) * G * Dz(T(z)) + h_f * a_v * (T_c(z, rad_cat) - T(z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(z, rad_cat) - C_i(z)))]
-DE4 = [Dt(C_c_i(z, r)[i]) ~ (((2 * D_i_m[i]) / r) + 0) * Dr(C_c_i(z, r)[i]) + D_i_m[i] * Drr(C_c_i(z, r)[i]) + r_i[i] for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(z, r)) + θ * sum(C_p_c_i[i] * C_c_i(z, r)[i] * Dt(T_c(z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(z, r)) + λ_cat * Drr(T_c(z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(z, r)[i]) .* C_p_c_i[i] * Dr(T_c(z, r))) for i in 1:5]
+DE1 = [Dt(C_i(t, z)[i]) ~ -α * (T(t, z)/P(t, z)) *  Dz(C_i(t, z)[i]) - C_i(t, z)[i] * α * ((1/P(t, z)) * Dz(T(t, z)) - (T(t, z)/P(t, z)^2) * Dz(P(t, z))) + k_c_i[i] * a_v * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) for i in 1:5]
+DE2 = [Dz(P(t, z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re)]
+DE3 = [C_p * (P(t, z) / (R * T(t, z))) * Dt(T(t, z)) ~ (- C_p) * G * Dz(T(t, z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t, z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t, z)))]
+DE4 = [Dt(C_c_i(t, z, r)[i]) ~ (((2 * D_i_m[i]) / r) + 0) * Dr(C_c_i(t, z, r)[i]) + D_i_m[i] * Drr(C_c_i(t, z, r)[i]) + r_i[i] for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
 eqs = [equations1; equations2; equations3; DE1; DE2; DE3; DE4; DE5]
 
@@ -581,14 +597,14 @@ eqs = [equations1; equations2; equations3; DE1; DE2; DE3; DE4; DE5]
 # BCS3. conditions at catalyst surface
 # BCS4. conditions at catalyst surface
 
-boundaries = [T(0) ~ T_in,
-P(0) ~ P_in,
-Dz(T_c(z, 0)) ~ 0]
-BCS1 = [C_i(0)[i] ~ C_i_in[i] for i in 1:5]
-BCS2 = [Dz(C_c_i(z, 0)[i]) ~ 0 for i in 1:5]
-BCS3 = [k_c_i[i] * (C_c_i(z, rad_cat)[i] - C_i(z)[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i(z, rad_cat)[i]) for i in 1:5]
-STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
-BCS4 = [h_f * (T_c(z, rad_cat) - T(z)) + sum(H_i .* k_c_i .* (C_c_i(z, rad_cat) - C_i(z))) ~ (- λ_cat) * Dr(T_c(z, rad_cat)) - sum(STEP1)]
+boundaries = [T(t, 0) ~ T_in,
+P(t, 0) ~ P_in,
+Dz(T_c(t, z, 0)) ~ 0]
+BCS1 = [C_i(t, 0)[i] ~ C_i_in[i] for i in 1:5]
+BCS2 = [Dz(C_c_i(t, z, 0)[i]) ~ 0 for i in 1:5]
+BCS3 = [k_c_i[i] * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5]
+STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
+BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i(t, z, rad_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP1)]
 
 bcs = [boundaries; BCS1; BCS2; BCS3; BCS4]
 
@@ -596,16 +612,19 @@ using OrdinaryDiffEq, DomainSets, MethodOfLines
 # Domain
 domains = [t ∈ Interval(0.0, 10.0),
     z ∈ Interval(0.0, L_val),
-    r ∈ Interval(0.0, rad_rct)]    
+    r ∈ Interval(0, rad_cat)]    
+
+vars = [y[1:5], C_i(t, z)[1:5], T(t, z), P(t, z), C_c_i(t, z, r)[1:5], T_c(t, z, r), M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]]
+params = [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], [y[1:5], C_i(z)[1:5], T(z), P(z), C_c_i(z, r)[1:5], T_c(z, r), M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]], [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, rad_cat => rad_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val])
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], vars, params)
 
 # Discretization
 dz = L_val/100
 dr = rad_rct/100
 order = 2
-discretization = MOLFiniteDifference([z => dz, r => dr], t, approx_order = order)
+discretization = MOLFiniteDifference([z => dz, r => dr], t)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
@@ -730,3 +749,5 @@ writedlm("WGS_results.csv", sol, ",")
 
 # # Solve ODE problem
 # sol = solve(prob, Tsit5(), saveat=0.2)
+
+# rad_cat => rad_cat_val
