@@ -749,5 +749,3 @@ writedlm("WGS_results.csv", sol, ",")
 
 # # Solve ODE problem
 # sol = solve(prob, Tsit5(), saveat=0.2)
-
-# rad_cat => rad_cat_val
