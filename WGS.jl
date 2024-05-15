@@ -14,7 +14,7 @@
 ### Define functions for physical properties ###
 using Symbolics
 
-using Infiltrator
+# using Infiltrator
 
 ## Diffusivity ##
 
@@ -365,6 +365,7 @@ end
 ### Define model equations ###
 
 using ModelingToolkit
+
 ## Registering symbolic functions ## (Double check if all are needed)
 @register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
 @register_symbolic D_ij_func_b(P, B) # added to eqs #
@@ -594,8 +595,9 @@ equations = [equations1; equations2; equations3]
 DE1 = [Dt(C_i(t, z)[i]) ~ -α * (T(t, z)[i]/P(t, z)[i]) *  Dz(C_i(t, z)[i]) - C_i(t, z)[i] * α * ((1/P(t, z)[i]) * Dz(T(t, z)[i]) - (T(t, z)[i]/P(t, z)[i]^2) * Dz(P(t, z)[i])) + k_c_i[i] * a_v * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) for i in 1:5]
 DE2 = [Dz(P(t, z)[i]) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re) for i in 1:5]
 DE3 = [C_p * (P(t, z)[i] / (R * T(t, z)[i])) * Dt(T(t, z)[i]) ~ (- C_p) * G * Dz(T(t, z)[i]) + h_f * a_v * (T_c(t, z, rad_cat)[i] - T(t, z)[i]) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i(t, z, rad_cat) - C_i(t, z))) for i in 1:5]
-DE4 = [Dt(C_c_i(t, z, r)[i]) ~ (((2 * D_i_m[i]) / r) + 0) * Dr(C_c_i(t, z, r)[i]) + D_i_m[i] * Drr(C_c_i(t, z, r)[i]) + r_i[i] for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)[i]) + θ * sum(C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r)[i])) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)[i]) + λ_cat * Drr(T_c(t, z, r)[i])) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r)[i])) for i in 1:5]
+DE4 = [Dt(C_c_i(t, z, r)[i]) ~ (((2 * D_i_m[i]) / r) + Dr(D_i_m[i])) * Dr(C_c_i(t, z, r)[i]) + D_i_m[i] * Drr(C_c_i(t, z, r)[i]) + r_i[i] for i in 1:5]
+STEP_DE = [C_p_c_i[i] * C_c_i(t, z, r)[i] * Dt(T_c(t, z, r)[i]) for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)[i]) + θ * sum(STEP_DE) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)[i]) + λ_cat * Drr(T_c(t, z, r)[i])) + θ * (D_i_m[i] .* Dr(C_c_i(t, z, r)[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r)[i])) for i in 1:5]
 diffequations = [DE1; DE2; DE3; DE4; DE5]
 
 eqs = [equations; diffequations]
@@ -625,8 +627,8 @@ BCS_Tc = [Dz(T_c(t, z, 0)[i]) ~ 0 for i in 1:5]
 BCS1 = [C_i(t, 0.0)[i] ~ C_i_in[i] for i in 1:5]
 BCS2 = [Dz(C_c_i(t, z, 0)[i]) ~ 0 for i in 1:5]
 BCS3 = [k_c_i[i] * (C_c_i(t, z, rad_cat)[i] - C_i(t, z)[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5]
-STEP1 = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
-BCS4 = [h_f * (T_c(t, z, rad_cat)[i] - T(t, z)[i]) + sum(H_i .* k_c_i .* (C_c_i(t, z, rad_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)[i]) - sum(STEP1) for i in 1:5]
+STEP_BCS = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i(t, z, rad_cat)[i]) for i in 1:5] # the sum won't work without a for loop
+BCS4 = [h_f * (T_c(t, z, rad_cat)[i] - T(t, z)[i]) + sum(H_i .* k_c_i .* (C_c_i(t, z, rad_cat) - C_i(t, z))) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)[i]) - sum(STEP_BCS) for i in 1:5]
 
 bcs = [ics; BCS_T; BCS_P; BCS_Tc; BCS1; BCS2; BCS3; BCS4]
 
