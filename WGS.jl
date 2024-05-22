@@ -14,8 +14,6 @@
 ### Define functions for physical properties ###
 using Symbolics
 
-# using Infiltrator
-
 ## Diffusivity ##
 
 # Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
@@ -48,7 +46,7 @@ function D_ij_matrix_func(T, P, D_ij_matrix)
     for row in eachrow(p)
         i = row[2]
         j = row[3]
-        # @infiltrate (i == Nothing || j == Nothing)
+
         if row[1] == "a"
             D_ij_matrix[i, j] = D_ij_func_a(T, P, row[4], row[5], row[6], row[7], row[8], row[9])
             D_ij_matrix[j, i] = D_ij_matrix[i, j]
@@ -78,13 +76,12 @@ function D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix)
     D_eff_ij = D_eff_ij_func(D_ij, θ, τ)
     
     for i in eachindex(y)
-        # @infiltrate i == Nothing
         i = i[1]
         denominator = 0
         row = D_eff_ij[i, :]
 
         for j in eachindex(y)
-            # @infiltrate j == Nothing
+            j = j[1]
             if j != i
                 denominator += y[j] / row[j]
             end
@@ -107,7 +104,6 @@ function C_p_i_func(T, i)
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
 
-    # @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -130,7 +126,6 @@ function μ_i_func(T, i)
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
 
-    # @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -142,11 +137,11 @@ function μ_mix_func(y, μ_i, M_i)
     μ_mix = 0
 
     for i in eachindex(y)
-        # @infiltrate i == Nothing
+        i = i[1]
         numerator = y[i] * μ_i[i]
         denominator = 0
         for j in eachindex(y)
-            # @infiltrate j == Nothing
+            j = j[1]
             denominator += y[j] * sqrt(M_i[j] / M_i[i])
         end
         μ_mix += numerator / denominator
@@ -166,7 +161,6 @@ function λ_i_func(T, i)
         4 5.3345e-6 1.3973 0 0;
         5 2.8497e-4 0.7722 16.323 373.72]
 
-    # @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -175,7 +169,6 @@ end
 
 # Binary interaction parameter A_ij ###[TESTED]###
 function A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
-    # @infiltrate (i == Nothing || j == Nothing)
     if i == j
         return 1.0
     else
@@ -193,13 +186,11 @@ function λ_dash_func(y, λ, μ_i, M_i, T, T_boil, C)
     λ_dash = 0
 
     for i in eachindex(y)
-        # @infiltrate i == Nothing
-        i = Int(i[1])
+        i = i[1]
         numerator = y[i] * λ[i]
         denominator = 0
         for j in eachindex(y)
-            # @infiltrate j == Nothing
-            j = Int(j[1])
+            j = j[1]
             denominator += y[j] * A_ij_func(i, j, μ_i, M_i, T, T_boil, C)
         end
         λ_dash += numerator / denominator
@@ -291,7 +282,6 @@ end
 
 # Molar fraction of i in the gas phase
 function y_func(C_i, i)
-    # @infiltrate i == Nothing
     C_i[i] / sum(C_i)
 end
 
@@ -304,7 +294,6 @@ function C_p_i_integrated_func(T, i)
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
 
-    # @infiltrate i == Nothing
     row = p[i, :]
     A, B, C, D = row[2], row[3], row[4], row[5]
 
@@ -313,7 +302,6 @@ end
 
 # Enthalpy of i
 function H_i_func(T, i)
-    # @infiltrate i == Nothing
     H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
 
     C_p_i_integrated_298 = C_p_i_integrated_func(298, i)
@@ -430,7 +418,7 @@ F_0 = 10 # [mol/h]
 R_joule = 8.314 # [J/mol K]
 R_atmL = 0.082057 # [L atm/mol K]
 R_atmm3 = 8.2057e-5 # [m3 atm/mol K]
-R_val = R_atmL # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
+R_val = R_atmm3 # The R chosen to be used overall (R_joule is used in r_i_func, but is added in the function itself)
 
 # Inlet conditions
 T_in = 473 # [K] 200 C
@@ -518,6 +506,7 @@ Drr = Differential(r)^2
 @variables begin
     # Gas phase species balance
     y(t, z)[1:5]
+    y_c(t, z, r)[1:5]
     C_i(..)[1:5]
     T(..)[1:5]
     P(..)[1:5]
@@ -532,7 +521,7 @@ Drr = Differential(r)^2
     M(t, z)
     # D_ij(T, P)[1:5, 1:5]
     # D_eff_ij(D_ij, θ, τ)[1:5, 1:5]
-    D_i_m(t, z)[1:5]
+    D_i_m(t, z, r)[1:5]
     ρ(t, z)
     μ_i(t, z)[1:5]
     μ(t, z)
@@ -561,13 +550,14 @@ end
 import ModelingToolkit: scalarize
 
 equations_y = [y[i] ~ y_func(C_i(t, z), i) for i in 1:5]
+equations_y_c = [y_c[i] ~ y_func(C_c_i(t, z, r), i) for i in 1:5]
 equations_μ = [μ_i[i] ~ μ_i_func(T(t, z)[i], i) for i in 1:5]
 equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(t, z)[i], i) for i in 1:5]
 equations_λ = [λ_i[i] ~ λ_i_func(T(t, z)[i], i) for i in 1:5]
 equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r)[i], i) for i in 1:5]
 equations_H_i = [H_i[i] ~ H_i_func(T(t, z)[i], i) for i in 1:5]
 equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat)[i], i) for i in 1:5]
-equations1 = [equations_y; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface]
+equations1 = [equations_y; equations_y_c; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface]
 
 # Matrix and vector for D_ij and D_i_m
 matrix_D_ij = zeros(Num, 5, 5)
@@ -575,7 +565,7 @@ vector_D_i_m = zeros(Num, 5)
 
 # equations_D_ij = [scalarize(D_ij[1:5,1:5] .~ D_ij_matrix_func(T(t, z), P(t, z), matrix_D_ij))...]
 # equations_D_eff_ij = [scalarize(D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ))...]
-equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(y, θ, τ, vector_D_i_m, T(t, z)[1], P(t, z)[1], matrix_D_ij))...]
+equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(y_c, θ, τ, vector_D_i_m, T_c(t, z, r)[1], P(t, z)[1], matrix_D_ij))...]
 equations_k_c_i = [scalarize(k_c_i[1:5] .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
 equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y, d_cat, θ, P(t, z)[1], T(t, z)[1]))...]
 equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
@@ -639,7 +629,7 @@ domains = [t ∈ Interval(0.0, 1.0),
     r ∈ Interval(0.0, rad_cat)]    
 
 
-vars = [y[1:5], C_i(t, z)[1:5], T(t, z)[1:5], P(t, z)[1:5], C_c_i(t, z, r)[1:5], T_c(t, z, r)[1:5], M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]]
+vars = [y[1:5], y_c[1:5], C_i(t, z)[1:5], T(t, z)[1:5], P(t, z)[1:5], C_c_i(t, z, r)[1:5], T_c(t, z, r)[1:5], M, D_i_m[1:5], ρ, μ_i[1:5], μ, k_c_i[1:5], u, Re, C_p_i[1:5], C_p, λ_i[1:5], λ_dash, λ, h_f, C_p_c_i[1:5], H_i[1:5], H_c_i_surface[1:5], r_i[1:5]]
 params = [α => α_val, a_v => a_v_val, M_i[1:5] => M_i_val[1:5], θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, T_boil[1:5] => T_boil_val[1:5], C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
