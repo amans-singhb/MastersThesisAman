@@ -11,6 +11,78 @@ Pkg.activate("WGS")
 using Symbolics
 using ModelingToolkit
 
+# Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
+function D_ij_func_a(T, P, A, B, C, D, E, F)
+    (A * abs(T)^B / P) * abs((log(C / abs(T))))^(-2 * D) * exp(-E / T - F / abs(T)^2)
+end
+
+function D_ij_func_b(P, B)
+    B / P
+end
+
+function D_ij_func_c(T, P, A, B)
+    (A * T + B) / P
+end
+
+# Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
+function D_ij_matrix_func(T, P, D_ij_matrix) 
+    #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error, D accounts for lack of C in eq = "a" )
+    p = ["a" 1 2 3.15e-5 1.57 1 0 113.6 0]
+    
+    for row in eachrow(p)
+        i = row[2]
+        j = row[3]
+
+        if row[1] == "a"
+            D_ij_matrix[i, j] = D_ij_func_a(T, P, row[4], row[5], row[6], row[7], row[8], row[9])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        elseif row[1] == "b"
+            D_ij_matrix[i, j] = D_ij_func_b(P, row[5])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        elseif row[1] == "c"
+            D_ij_matrix[i, j] = D_ij_func_c(T, P, row[4], row[5])
+            D_ij_matrix[j, i] = D_ij_matrix[i, j]
+        else
+            print("Invalid equation! Eq: ", row[1])
+            return
+        end
+    end
+
+    return D_ij_matrix
+end
+
+# Effective diffusivity of i in j ###[TESTED]###
+function D_eff_ij_func(D_ij, θ, τ)
+    D_ij .* (θ / τ)
+end
+
+# Effective diffusivity of i in the mixture ###[TESTED]###
+function D_i_m_func(y, θ, τ, T, P)
+    D_ij_matrix = zeros(Num, 2, 2)
+    D_i_m_vec = zeros(Num, 2)
+
+    D_ij = D_ij_matrix_func(T, P, D_ij_matrix)
+    D_eff_ij = D_eff_ij_func(D_ij, θ, τ)
+    
+    for i in eachindex(y)
+        i = i[1]
+        denominator = 0
+        row = D_eff_ij[i, :]
+
+        for j in eachindex(y)
+            j = j[1]
+            if j != i
+                denominator += y[j] / row[j]
+            end
+        end
+
+        D_i_m_vec[i] = (1-y[i]) / denominator
+    end
+
+    D_i_m_vec = D_i_m_vec * 10000 # for conversion
+
+    return D_i_m_vec
+end
 
 ### PDE system ###
 
@@ -22,11 +94,14 @@ T_val = 450.0 # [K]
 T_c_val = 500.0 # [K]
 C_i_val = [5.0, 7.0]
 drTc_val = 5
+θ_val = 0.55 #[-]
+τ_val = 5 #[-]
+P_c_val = 1.3 # [atm]
 
-C_c_i_init = [0.1, 33.39396610065385]
+C_c_i_init = [0.0, 0.0]
 
 ## Parameters ##
-@parameters t r T T_c drTc C_i[1:2] C_c_i[1:2]
+@parameters t r T T_c drTc θ τ P_c C_i[1:2]
 
 ## Differential ##
 Dt = Differential(t)
@@ -34,11 +109,18 @@ Dr = Differential(r)
 Drr = Differential(r)^2
 
 ## Variables ##
-@variables C_c_i(..)[1:2] T(..)[1:2] X(..) Y(..)
+@variables C_c_i(..)[1:2] y_c(t, r)[1:2]
 
 ## Equations and Differential Equations ##
+## Differential of function ##
 
-eqs = [Dt(C_c_i(t, r)[i]) ~ 1 * Dr(C_c_i(t, r)[i]) + Drr(C_c_i(t, r)[i]) for i in 1:2]
+eqs_y = [y_c[i] ~ C_c_i(t, r)[i] / (C_c_i(t, r)[1] + C_c_i(t, r)[2]) for i in 1:2]
+
+Dr_D_im = Dr.(D_i_m_func(y_c, θ, τ, T_c, P_c))
+expand_Dr_D_im = expand_derivatives.(Dr_D_im)
+
+eqs1 = [Dt(C_c_i(t, r)[i]) ~ expand_Dr_D_im[i] * Dr(C_c_i(t, r)[i]) + Drr(C_c_i(t, r)[i]) for i in 1:2]
+eqs = [eqs_y; eqs1]
 
 ICS_C_c_i = [C_c_i(0.0, r)[i] ~ C_c_i_init[i] for i in 1:2]
 
@@ -53,17 +135,16 @@ bcs = [ICS_C_c_i; BCS2; BCS3; BCS4]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 using ModelingToolkit: scalarize
 
-params_vec = [C_i[i] => C_i_val[i] for i in 1:2]
+
 
 # Domain
 domains = [t ∈ Interval(0.0, 1.0),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
-vars1 = reduce(vcat, [[C_c_i(t, r)[i] for i in 1:2], X(t, r)])
-vars2 = reduce(vcat, [[T(t, r)[i] for i in 1:2], Y(t, r)])
-vars = [vars1; vars2]
-params_scal = [T => T_val, T_c => T_c_val, drTc => drTc_val]
+vars = reduce(vcat,[[C_c_i(t, r)[i] for i in 1:2], [y_c[i] for i in 1:2]])
+params_scal = [T => T_val, T_c => T_c_val, drTc => drTc_val, θ => θ_val, τ => τ_val, P_c => P_c_val]
+params_vec = [C_i[i] => C_i_val[i] for i in 1:2]
 params = [params_scal; params_vec]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, params)
 
@@ -74,4 +155,4 @@ discretization = MOLFiniteDifference([r => dr], t, order = order)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
-sol = solve(prob, Tsit5())
+sol = solve(prob, Tsit5(), saveat = 0.1)
