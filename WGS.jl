@@ -359,60 +359,6 @@ end
 
 using ModelingToolkit
 
-## Registering symbolic functions ## (Double check if all are needed)
-@register_symbolic D_ij_func_a(T, P, A, B, C, D, E, F) # added to eqs #
-@register_symbolic D_ij_func_b(P, B) # added to eqs #
-@register_symbolic D_ij_func_c(T, P, A, B) # added to eqs #
-@register_symbolic D_ij_matrix_func(T, P, D_ij_matrix) # added to eqs #
-@register_symbolic D_eff_ij_func(D_ij, θ, τ) # added to eqs #
-@register_symbolic D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix) # added to eqs #
-# @register_array_symbolic D_ij_matrix_func(T, P, D_ij_matrix) begin
-#     size = (5, 5)
-# end # added to eqs, array #
-# @register_array_symbolic D_eff_ij_func(D_ij, θ, τ) begin
-#     size = (5, 5)
-# end # added to eqs, array #
-# @register_array_symbolic D_i_m_func(y, θ, τ, D_i_m_vec, T, P, D_ij_matrix) begin
-#     size = (5,)
-# end # added to eqs, array #
-
-
-@register_symbolic C_p_i_func(T, i) # added to eqs #
-@register_symbolic C_p_func(y, C_p_i) # added to eqs #
-
-@register_symbolic μ_i_func(T, i) # added to eqs #
-@register_symbolic μ_mix_func(y, μ_i, M_i) # added to eqs #
-
-@register_symbolic λ_i_func(T, i) # added to eqs #
-@register_symbolic A_ij_func(i, j, μ_i, M_i, T, T_boil, C) # added to eqs #
-@register_symbolic λ_dash_func(y, λ_i, μ_i, M_i, T, T_boil, C) # added to eqs #
-@register_symbolic λ_func(y, T, P, R, M, λ_dash) # added to eqs #
-
-# @register_symbolic G_func(F_0, D_rct, ϵ_b) # constant
-# @register_symbolic α_func(G, R) # constant
-@register_symbolic Re_func(ρ, u, L, μ) # added to eqs #
-@register_symbolic F_fr_func(G, D_cat, ρ, ϵ_b, Re) # added to eqs #
-@register_symbolic ρ_func(P, T, R) # added to eqs #
-@register_symbolic u_func(α, T, P) # added to eqs #
-@register_symbolic y_func(C_i, i) # added to eqs #
-
-@register_symbolic C_p_i_integrated_func(T, i) # added to eqs #
-@register_symbolic H_i_func(T, i) # added to eqs #
-
-@register_symbolic r_i_func(y, d_cat, θ, P, T) # added to eqs #
-@register_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) # added to eqs #
-# @register_array_symbolic r_i_func(y, d_cat, θ, P, T) begin
-#     size = (5,)
-# end # added to eqs, array #
-# @register_array_symbolic k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat) begin
-#     size = (5,)
-# end # added to eqs, array  #
-
-@register_symbolic h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ) # added to eqs #
-# @register_symbolic ϵ_b_func(D_rct, D_cat) # constant
-# @register_symbolic a_v_func(ϵ_b, D_cat) # constant
- 
-
 ### Solving PDesystem ###
 
 ## Define and calculate parameters ##
