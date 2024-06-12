@@ -614,7 +614,7 @@ equations1 = [equations_y; equations_y_c; equations_μ; equations_C_p_i; equatio
 # equations_D_eff_ij = [scalarize(D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ))...]
 equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(C_c_i, θ, τ, T_c(t, z, r), P_c(t, z, r)))...]
 equations_k_c_i = [scalarize(k_c_i[1:5] .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
-equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y_c, d_cat, θ, P_c(t, z, r), T_c(t, z)))...]
+equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y_c, d_cat, θ, P_c(t, z, r), T_c(t, z, r)))...]
 equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
 
 equations3 = [M ~ sum(y .* M_i),
@@ -650,7 +650,7 @@ eqs = [equations; diffequations]
 
 C_i_init_sym = [C_1(0.0, z), C_2(0.0, z), C_3(0.0, z), C_4(0.0, z), C_5(0.0, z)]
 
-ICS_T = [T(0, z)~ T_init]
+ICS_T = [T(0, z) ~ T_init]
 ICS_P = [P(0, z) ~ P_init]
 ICS_C_i = [C_i_init_sym[i] ~ C_i_init[i] for i in 1:5]
 ics = [ICS_T; ICS_P; ICS_C_i]
@@ -669,7 +669,7 @@ C_c_i_bound_sym = [C_c_1(t, z, 0.0), C_c_2(t, z, 0.0), C_c_3(t, z, 0.0), C_c_4(t
 
 BCS_T = [T(t, 0.0) ~ T_in]
 BCS_P = [P(t, 0.0) ~ P_in]
-BCS_Tc = [Dr(T_c(t, z, 0.0)) ~ 0.0]
+BCS_Tc = [Dr(T_c(t, z, 0)) ~ 0]
 BCS1 = [C_i_bound_sym[i] ~ C_i_in[i] for i in 1:5]
 BCS2 = [Dr(C_c_i_bound_sym[i]) ~ 0.0 for i in 1:5]
 BCS3 = [k_c_i[i] * (C_c_i_rad[i] - C_i[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5]
@@ -697,10 +697,10 @@ params = [params_scal; params_vec_M_i; params_vec_T_boil]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, z, r], vars, params)
 
 # Discretization
-# dz = round(L_val/10, sigdigits=4)
-# dr = round(rad_cat/10, sigdigits=4)
-dz = L_val/10
-dr = rad_cat/10
+dz = round(L_val/10, sigdigits=4)
+dr = round(rad_cat/10, sigdigits=4)
+# dz = L_val/10
+# dr = rad_cat/10
 order = 2
 discretization = MOLFiniteDifference([z => dz, r => dr], t, order=order)
 
