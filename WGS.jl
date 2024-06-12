@@ -470,7 +470,11 @@ Drr = Differential(r)^2
     C_4(..)
     C_5(..)
 
-    T(..)
+    T_1(..)
+    T_2(..)
+    T_3(..)
+    T_4(..)
+    T_5(..)
 
     P(..)
 
@@ -574,6 +578,7 @@ end
 
 
 C_i = [C_1(t, z), C_2(t, z), C_3(t, z), C_4(t, z), C_5(t, z)]
+T = [T_1(t, z), T_2(t, z), T_3(t, z), T_4(t, z), T_5(t, z)]
 C_c_i = [C_c_1(t, z, r), C_c_2(t, z, r), C_c_3(t, z, r), C_c_4(t, z, r), C_c_5(t, z, r)]
 C_c_i_rad = [C_c_1(t, z, rad_cat), C_c_2(t, z, rad_cat), C_c_3(t, z, rad_cat), C_c_4(t, z, rad_cat), C_c_5(t, z, rad_cat)]
 y = [y_1, y_2, y_3, y_4, y_5]
@@ -600,11 +605,11 @@ import ModelingToolkit: scalarize
 
 equations_y = [y[i] ~ y_func(C_i, i) for i in 1:5]
 equations_y_c = [y_c[i] ~ y_func(C_c_i, i) for i in 1:5]
-equations_μ = [μ_i[i] ~ μ_i_func(T(t, z), i) for i in 1:5]
-equations_C_p_i = [C_p_i[i] ~ C_p_i_func(T(t, z), i) for i in 1:5]
-equations_λ = [λ_i[i] ~ λ_i_func(T(t, z), i) for i in 1:5]
+equations_μ = [μ_i[i] ~ μ_i_func( T[1], i) for i in 1:5]
+equations_C_p_i = [C_p_i[i] ~ C_p_i_func( T[1], i) for i in 1:5]
+equations_λ = [λ_i[i] ~ λ_i_func( T[1], i) for i in 1:5]
 equations_C_p_c_i = [C_p_c_i[i] ~ C_p_i_func(T_c(t, z, r), i) for i in 1:5]
-equations_H_i = [H_i[i] ~ H_i_func(T(t, z), i) for i in 1:5]
+equations_H_i = [H_i[i] ~ H_i_func( T[1], i) for i in 1:5]
 equations_H_c_i_surface = [H_c_i_surface[i] ~ H_i_func(T_c(t, z, rad_cat), i) for i in 1:5]
 equations_P_c = [P_c(t, z, r) ~ (C_c_i[1] + C_c_i[2] + C_c_i[3] + C_c_i[4] + C_c_i[5]) * R_val * T_c(t, z, r)]
 equations1 = [equations_y; equations_y_c; equations_μ; equations_C_p_i; equations_λ; equations_C_p_c_i; equations_H_i; equations_H_c_i_surface; equations_P_c]
@@ -618,27 +623,28 @@ equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y_c, d_cat, θ, P_c(t, z, r), T_
 equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
 
 equations3 = [M ~ sum(y .* M_i),
-    ρ ~ ρ_func(P(t, z), T(t, z), R),
+    ρ ~ ρ_func(P(t, z),  T[1], R),
     μ ~ μ_mix_func(y, μ_i, M_i),
-    u ~ u_func(α, T(t, z), P(t, z)),
+    u ~ u_func(α,  T[1], P(t, z)),
     Re ~ Re_func(ρ, u, L, μ),
     C_p ~ C_p_func(y, C_p_i),
-    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i, T(t, z), T_boil, C),
-    λ ~ λ_func(y, T(t, z), P(t, z), R, M, λ_dash),
-    h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ),
-    C_c_i_rad[1] ~ C_c_1(t, z, rad_cat)]
+    λ_dash ~ λ_dash_func(y, λ_i, μ_i, M_i,  T[1], T_boil, C),
+    λ ~ λ_func(y,  T[1], P(t, z), R, M, λ_dash),
+    h_f ~ h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ)]
 
 equations = [equations1; equations2; equations3]
 
 Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T_c(t, z, r), P_c(t, z, r)))
 expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
-DE1 = [Dt(C_i[i]) ~ -α * (T(t, z)/P(t, z)) *  Dz(C_i[i]) - C_i[i] * α * ((1/P(t, z)) * Dz(T(t, z)) - (T(t, z)/P(t, z)^2) * Dz(P(t, z))) + k_c_i[i] * a_v * (C_c_i_rad[i] - C_i[i]) for i in 1:5]
+DE1 = [Dt(C_i[i]) ~ -α * ( T[i]/P(t, z)) *  Dz(C_i[i]) - C_i[i] * α * ((1/P(t, z)) * Dz( T[i]) - ( T[i]/P(t, z)^2) * Dz(P(t, z))) + k_c_i[i] * a_v * (C_c_i_rad[i] - C_i[i]) for i in 1:5]
 DE2 = Dz(P(t, z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re)
-DE3 = C_p * (P(t, z) / (R * T(t, z))) * Dt(T(t, z)) ~ (- C_p) * G * Dz(T(t, z)) + h_f * a_v * (T_c(t, z, rad_cat) - T(t, z)) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_rad - C_i))
+DE3 = C_p * (P(t, z) / (R *  T[1])) * Dt( T[1]) ~ (- C_p) * G * Dz( T[1]) + h_f * a_v * (T_c(t, z, rad_cat) -  T[1]) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_rad - C_i))
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
-#STEP_DE = [C_p_c_i[i] * C_c_i[i] * Dt(T_c(t, z, r)) for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i .* C_c_i .* Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+STEP_DE = [C_p_c_i[i] * C_c_i[i] * Dt(T_c(t, z, r)) for i in 1:5]
+# DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i .* C_c_i .* Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(STEP_DE) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] * Dr(C_c_i[i]) * C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+
 diffequations = [DE1; DE2; DE3; DE4; DE5]
 
 eqs = [equations; diffequations]
@@ -649,8 +655,9 @@ eqs = [equations; diffequations]
 # ICS_C_i. C_i at t = 0
 
 C_i_init_sym = [C_1(0.0, z), C_2(0.0, z), C_3(0.0, z), C_4(0.0, z), C_5(0.0, z)]
+T_init_sym = [T_1(0.0, z), T_2(0.0, z), T_3(0.0, z), T_4(0.0, z), T_5(0.0, z)]
 
-ICS_T = [T(0, z) ~ T_init]
+ICS_T = [T_init_sym[i] ~ T_init for i in 1:5]
 ICS_P = [P(0, z) ~ P_init]
 ICS_C_i = [C_i_init_sym[i] ~ C_i_init[i] for i in 1:5]
 ics = [ICS_T; ICS_P; ICS_C_i]
@@ -666,15 +673,16 @@ ics = [ICS_T; ICS_P; ICS_C_i]
 
 C_i_bound_sym = [C_1(t, 0.0), C_2(t, 0.0), C_3(t, 0.0), C_4(t, 0.0), C_5(t, 0.0)]
 C_c_i_bound_sym = [C_c_1(t, z, 0.0), C_c_2(t, z, 0.0), C_c_3(t, z, 0.0), C_c_4(t, z, 0.0), C_c_5(t, z, 0.0)]
+T_bound_sym = [T_1(t, 0.0), T_2(t, 0.0), T_3(t, 0.0), T_4(t, 0.0), T_5(t, 0.0)]
 
-BCS_T = [T(t, 0.0) ~ T_in]
+BCS_T = [T_bound_sym[i] ~ T_in for i in 1:5]
 BCS_P = [P(t, 0.0) ~ P_in]
 BCS_Tc = [Dr(T_c(t, z, 0)) ~ 0]
 BCS1 = [C_i_bound_sym[i] ~ C_i_in[i] for i in 1:5]
 BCS2 = [Dr(C_c_i_bound_sym[i]) ~ 0.0 for i in 1:5]
 BCS3 = [k_c_i[i] * (C_c_i_rad[i] - C_i[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5]
 STEP_BCS = [H_c_i_surface[i] * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5] # the sum won't work without a for loop
-BCS4 = [h_f * (T_c(t, z, rad_cat) - T(t, z)) + sum(H_i .* k_c_i .* (C_c_i_rad - C_i)) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP_BCS) for i in 1:5]
+BCS4 = [h_f * (T_c(t, z, rad_cat) -  T[i]) + sum(H_i .* k_c_i .* (C_c_i_rad - C_i)) ~ (- λ_cat) * Dr(T_c(t, z, rad_cat)) - sum(STEP_BCS) for i in 1:5]
 
 bcs = [ics; BCS_T; BCS_P; BCS_Tc; BCS1; BCS2; BCS3; BCS4]
 
@@ -684,7 +692,7 @@ domains = [t ∈ Interval(0.0, 1.0),
     z ∈ Interval(0.0, L_val),
     r ∈ Interval(0.0, rad_cat)]    
 
-vars_imp = reduce(vcat, [[C_i[i] for i in 1:5], T(t, z), P(t, z), [C_c_i[i] for i in 1:5], [C_c_i_rad[i] for i in 1:5], T_c(t, z, r), P_c(t, z, r)])
+vars_imp = reduce(vcat, [[C_i[i] for i in 1:5],  [T[i] for i in 1:5], P(t, z), [C_c_i[i] for i in 1:5], T_c(t, z, r), P_c(t, z, r)])
 vars_other = reduce(vcat, [[y[i] for i in 1:5], [y_c[i] for i in 1:5], M, [D_i_m[i] for i in 1:5], ρ, [μ_i[i] for i in 1:5], μ, [k_c_i[i] for i in 1:5], u, Re, [C_p_i[i] for i in 1:5], C_p, [λ_i[i] for i in 1:5], λ_dash, λ, h_f, [C_p_c_i[i] for i in 1:5], [H_i[i] for i in 1:5], [H_c_i_surface[i] for i in 1:5], [r_i[i] for i in 1:5]])
 vars = [vars_imp; vars_other]
 
