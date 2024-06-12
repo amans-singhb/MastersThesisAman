@@ -617,9 +617,9 @@ equations1 = [equations_y; equations_y_c; equations_μ; equations_C_p_i; equatio
 
 # equations_D_ij = [scalarize(D_ij[1:5,1:5] .~ D_ij_matrix_func(T(t, z), P(t, z), matrix_D_ij))...]
 # equations_D_eff_ij = [scalarize(D_eff_ij .~ D_eff_ij_func(D_ij, θ, τ))...]
-equations_D_i_m = [scalarize(D_i_m[1:5] .~ D_i_m_func(C_c_i, θ, τ, T_c(t, z, r), P_c(t, z, r)))...]
-equations_k_c_i = [scalarize(k_c_i[1:5] .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
-equations_r_i = [scalarize(r_i[1:5] .~ r_i_func(y_c, d_cat, θ, P_c(t, z, r), T_c(t, z, r)))...]
+equations_D_i_m = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T_c(t, z, r), P_c(t, z, r)))...]
+equations_k_c_i = [scalarize(k_c_i .~ k_c_i_func(ρ, M, D_i_m, μ, G, ϵ_b, D_cat))...]
+equations_r_i = [scalarize(r_i .~ r_i_func(y_c, d_cat, θ, P_c(t, z, r), T_c(t, z, r)))...]
 equations2 = [equations_D_i_m; equations_k_c_i; equations_r_i]
 
 equations3 = [M ~ sum(y .* M_i),
@@ -642,7 +642,6 @@ DE2 = Dz(P(t, z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re)
 DE3 = C_p * (P(t, z) / (R *  T[1])) * Dt( T[1]) ~ (- C_p) * G * Dz( T[1]) + h_f * a_v * (T_c(t, z, rad_cat) -  T[1]) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_rad - C_i))
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
 STEP_DE = [C_p_c_i[i] * C_c_i[i] * Dt(T_c(t, z, r)) for i in 1:5]
-# DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(C_p_c_i .* C_c_i .* Dt(T_c(t, z, r))) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] .* Dr(C_c_i[i]) .* C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(STEP_DE) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] * Dr(C_c_i[i]) * C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
 diffequations = [DE1; DE2; DE3; DE4; DE5]
