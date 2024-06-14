@@ -450,6 +450,7 @@ C_p_cat_val = 35.5 # plaeceholder value
     ρ_cat
     C_p_cat
     λ_cat
+    radius_cat
 
     M_i[1:5]
     T_boil[1:5]
@@ -642,7 +643,7 @@ DE2 = Dz(P(t, z)) ~ - F_fr_func(G, D_cat, ρ, ϵ_b, Re)
 DE3 = C_p * (P(t, z) / (R *  T[1])) * Dt( T[1]) ~ (- C_p) * G * Dz( T[1]) + h_f * a_v * (T_c(t, z, rad_cat) -  T[1]) + a_v * sum(k_c_i .* (H_c_i_surface - H_i) .* (C_c_i_rad - C_i))
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
 STEP_DE = [C_p_c_i[i] * C_c_i[i] * Dt(T_c(t, z, r)) for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(STEP_DE) ~ (((2 * λ_cat) / r) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] * Dr(C_c_i[i]) * C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, z, r)) + θ * sum(STEP_DE) ~ (((2 * λ_cat) / radius_cat) * Dr(T_c(t, z, r)) + λ_cat * Drr(T_c(t, z, r))) + θ * (D_i_m[i] * Dr(C_c_i[i]) * C_p_c_i[i] * Dr(T_c(t, z, r))) for i in 1:5]
 
 diffequations = [DE1; DE2; DE3; DE4; DE5]
 
@@ -697,7 +698,7 @@ vars = [vars_imp; vars_other]
 
 params_vec_M_i = [M_i[i] => M_i_val[i] for i in 1:5]
 params_vec_T_boil = [T_boil[i] => T_boil_val[i] for i in 1:5]
-params_scal = [α => α_val, a_v => a_v_val,  θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val]
+params_scal = [α => α_val, a_v => a_v_val,  θ =>  θ_val, τ => τ_val, G => G_val, D_cat => D_cat_val, ϵ_b => ϵ_b_val, L => L_val, R => R_val, C => C_val, d_cat => d_cat_val, ρ_cat => ρ_cat_val, C_p_cat => C_p_cat_val, λ_cat => λ_cat_val, radius_cat => rad_cat]
 params = [params_scal; params_vec_M_i; params_vec_T_boil]
 
 # PDESystem(eqs, bcs, domains, independent_vars, dependent_vars, parameters)
