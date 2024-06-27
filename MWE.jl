@@ -13,7 +13,7 @@ using ModelingToolkit
 
 # Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
 function D_ij_func_a(T, P, A, B, C, D, E, F)
-    (A * abs(T)^B / P) * abs((log(C / abs(T))))^(-2 * D) * exp(-E / T - F / abs(T)^2)
+    (A * T^B / P) * (log(C / T))^(-2 * D) * exp(-E / T - F / T^2)
 end
 
 function D_ij_func_b(P, B)
@@ -57,7 +57,8 @@ function D_eff_ij_func(D_ij, θ, τ)
 end
 
 # Effective diffusivity of i in the mixture ###[TESTED]###
-function D_i_m_func(y, θ, τ, T, P)
+function D_i_m_func(c, θ, τ, T, P)
+    y = [c[1]/(c[1] + c[2]); c[2]/(c[1] + c[2])]
     D_ij_matrix = zeros(Num, 2, 2)
     D_i_m_vec = zeros(Num, 2)
 
@@ -86,22 +87,22 @@ end
 
 ### PDE system ###
 
-D_cat_val = 0.25e-3 # [m]
+D_cat_val = 0.25e-1 # [m]
 rad_cat = 0.5 * D_cat_val # [m]
 L_val = 4.8e-3 # [m]
 
 T_val = 450.0 # [K]
-T_c_val = 500.0 # [K]
+T_c_val = 300.0 # [K]
 C_i_val = [5.0, 7.0]
 drTc_val = 5
 θ_val = 0.55 #[-]
 τ_val = 5 #[-]
 P_c_val = 1.3 # [atm]
 
-C_c_i_init = [0.0, 0.0]
+C_c_i_init = [0.001, 0.001]
 
 ## Parameters ##
-@parameters t r T T_c drTc θ τ P_c C_i[1:2]
+@parameters t r T_c θ τ P_c C_i[1:2]
 
 ## Differential ##
 Dt = Differential(t)
@@ -109,32 +110,32 @@ Dr = Differential(r)
 Drr = Differential(r)^2
 
 ## Variables ##
-@variables C_c_i(..)[1:2] y_c(t, r)[1:2]
+#@variables C_c_i(..)[1:2] y_c(t, r)[1:2]
+@variables C_c_1(..) C_c_2(..)
+
 
 ## Equations and Differential Equations ##
 ## Differential of function ##
 
-eqs_y = [y_c[i] ~ C_c_i(t, r)[i] / (C_c_i(t, r)[1] + C_c_i(t, r)[2]) for i in 1:2]
+#eqs_y = [y_c[i] ~ C_c_i(t, r)[i] / (C_c_i(t, r)[1] + C_c_i(t, r)[2]) for i in 1:2]
 
-Dr_D_im = Dr.(D_i_m_func(y_c, θ, τ, T_c, P_c))
+Dr_D_im = Dr.(D_i_m_func([C_c_1(t, r), C_c_2(t, r)], θ, τ, T_c, P_c))
 expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
-eqs1 = [Dt(C_c_i(t, r)[i]) ~ expand_Dr_D_im[i] * Dr(C_c_i(t, r)[i]) + Drr(C_c_i(t, r)[i]) for i in 1:2]
-eqs = [eqs_y; eqs1]
+eqs1 = [Dt(C_c_1(t, r)) ~ expand_Dr_D_im[1] * Dr(C_c_1(t, r)) + Drr(C_c_1(t, r)),  
+Dt(C_c_2(t, r)) ~ expand_Dr_D_im[2] * Dr(C_c_2(t, r)) + Drr(C_c_2(t, r))]
+eqs = [eqs1...]
 
-ICS_C_c_i = [C_c_i(0.0, r)[i] ~ C_c_i_init[i] for i in 1:2]
+ICS_C_c_i = [C_c_1(0.0, r) ~ C_c_i_init[1], C_c_2(0.0, r) ~ C_c_i_init[2]]
 
-BCS2 = [Dr(C_c_i(t, 0)[i]) ~ 0 for i in 1:2]
-BCS3 = [(C_c_i(t, rad_cat)[i] - C_i[i]) ~ Dr(C_c_i(t, rad_cat)[i]) for i in 1:2]
-STEP1_BCS4 = [(C_c_i(t, rad_cat)[i] - C_i[i]) for i in 1:2]
-STEP2_BCS4 = [Dr(C_c_i(t, rad_cat)[i]) for i in 1:2] # the sum won't work without a for loop
-BCS4 = [(T_c - T) + sum(STEP1_BCS4) ~ drTc - sum(STEP2_BCS4)]
+BCS2 = [Dr(C_c_1(t, 0)) ~ 0.0, Dr(C_c_2(t, 0)) ~ 0.0]
+BCS3 = [(C_c_1(t, rad_cat) - C_i[1]) ~ 0.0, (C_c_2(t, rad_cat) - C_i[2]) ~ 0.0]
 
-bcs = [ICS_C_c_i; BCS2; BCS3; BCS4]
+
+bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 using ModelingToolkit: scalarize
-
 
 
 # Domain
@@ -142,17 +143,19 @@ domains = [t ∈ Interval(0.0, 1.0),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
-vars = reduce(vcat,[[C_c_i(t, r)[i] for i in 1:2], [y_c[i] for i in 1:2]])
-params_scal = [T => T_val, T_c => T_c_val, drTc => drTc_val, θ => θ_val, τ => τ_val, P_c => P_c_val]
+vars = [C_c_1(t, r), C_c_2(t, r)]
+params_scal = [T_c => T_c_val, θ => θ_val, τ => τ_val, P_c => P_c_val]
 params_vec = [C_i[i] => C_i_val[i] for i in 1:2]
-params = [params_scal; params_vec]
+params = [params_scal...; params_vec...]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, params)
 
 # Discretization
-dr = round(rad_cat/10, sigdigits=4)
-order = 2
+dr = rad_cat/20
+order = 4
 discretization = MOLFiniteDifference([r => dr], t, order = order)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
-sol = solve(prob, Tsit5(), saveat = 0.1)
+sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
+sols = sol[C_c_1(t, r)]
+plot(sols[])

@@ -570,11 +570,11 @@ Drr = Differential(r)^2
     H_c_4_surface(t, z, r)
     H_c_5_surface(t, z, r)
     
-    r_1(t, z)
-    r_2(t, z)
-    r_3(t, z)
-    r_4(t, z)
-    r_5(t, z)
+    r_1(t, z, r)
+    r_2(t, z, r)
+    r_3(t, z, r)
+    r_4(t, z, r)
+    r_5(t, z, r)
 end
 
 
