@@ -115,23 +115,6 @@ function D_i_m_func(C_i, θ, τ, T, P)
     return D_i_m_vec
 end
 
-# Reaction rate of if
-function r_i_func(C_i, d_cat, θ, P, T)
-    y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
-        C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
-        C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
-        C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
-        C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
-
-    R_joule = 8.314
-    K_eq = exp((4577.8 / T) - 4.33)
-    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R_joule * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
-
-    r_i = [-r_co_min, -r_co_min, r_co_min, r_co_min, 0]
-
-    return r_i
-end
-
 ## Viscosity ##
 
 # Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
@@ -171,6 +154,25 @@ function μ_mix_func(y, T, M_i)
     return μ_mix
 end
 
+## Other functions ##
+
+# Reaction rate of if
+function r_i_func(C_i, d_cat, θ, P, T)
+    y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
+
+    R_joule = 8.314
+    K_eq = exp((4577.8 / T) - 4.33)
+    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R_joule * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
+
+    r_i = [-r_co_min, -r_co_min, r_co_min, r_co_min, 0]
+
+    return r_i
+end
+
 # Bed porosity
 function ϵ_b_func(D_rct, D_cat)
     0.38 + 0.073 * (1 - (D_rct / D_cat - 2)^2 / (D_rct / D_cat)^2)
@@ -202,8 +204,9 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m)
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F, D_rct, ϵ_b)
 
+    k_c_i =  0.357 * abs.(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
     
-    0.357 * abs.(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
+    return k_c_i
 end
 
 ### PDE system ###
@@ -275,7 +278,7 @@ DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / rad) + expand_Dr_D_im[i]) * Dr(C_c_i[i]
 eqs = [eqs_Pc...; eqs_Dim...; eqs_ri...; eqs_kci...; DE4...]
 
 ICS_C_c_i = [C_c_1(0.0, r) ~ C_c_i_init[1], C_c_2(0.0, r) ~ C_c_i_init[2], C_c_3(0.0, r) ~ C_c_i_init[3], C_c_4(0.0, r) ~ C_c_i_init[4], C_c_5(0.0, r) ~ C_c_i_init[5]]
-BCS2 = [Dr(C_c_1(t, 0)) ~ 0.0, Dr(C_c_2(t, 0)) ~ 0.0, Dr(C_c_3(t, 0)) ~ 0.0, Dr(C_c_4(t, 0)) ~ 0.0, Dr(C_c_5(t, 0)) ~ 0.0]
+BCS2 = [Dr(C_c_1(t, 0.0)) ~ 0.0, Dr(C_c_2(t, 0.0)) ~ 0.0, Dr(C_c_3(t, 0.0)) ~ 0.0, Dr(C_c_4(t, 0.0)) ~ 0.0, Dr(C_c_5(t, 0.0)) ~ 0.0]
 BCS3 = [k_c_i[i] * (C_c_i_rad[i] - C_i[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5]
 
 bcs = [ICS_C_c_i...; BCS2...; BCS3...]
