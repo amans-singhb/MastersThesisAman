@@ -2,7 +2,7 @@
 
 using Pkg
 Pkg.activate("WGS")
-include("WGS_functions.jl")
+include("functions_WGS.jl")
 
 ### Defining naming conventions and numeration ###
 

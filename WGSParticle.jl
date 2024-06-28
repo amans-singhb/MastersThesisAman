@@ -2,7 +2,7 @@
 
 using Pkg
 Pkg.activate("WGS")
-include("WGSParticle_functions.jl")
+include("functions_WGSParticle.jl")
 
 ### Defining naming conventions and numeration ###
 
@@ -128,4 +128,3 @@ plot(sols[])
 # 1. constant diffusivity
 # 2. no Reaction
 # 3. constant temperature and pressure
-
