@@ -200,7 +200,9 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
 
     return k_c_i_2
 end
+
 using DelimitedFiles
+
 # util function to write data to csv
 function write_to_csv(filename::String, data, delimiter::String=",")
     folder_path = "results_particle"
