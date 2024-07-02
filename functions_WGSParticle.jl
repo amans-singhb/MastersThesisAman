@@ -101,7 +101,7 @@ function D_i_m_func(C_i, θ, τ, T, P)
         D_i_m_vec[i] = (1-y[i]) / denominator
     end
 
-    D_i_m_vec = D_i_m_vec * 10000 # for conversion
+    D_i_m_vec = D_i_m_vec * (3600/10000) # for conversion to [m^2/h]
 
     return D_i_m_vec
 end
@@ -140,14 +140,14 @@ function μ_mix_func(y, T, M_i)
         μ_mix += numerator / denominator
     end
 
-    μ_mix = μ_mix * 1000 # for conversion
+    μ_mix = μ_mix * 3600 # for conversion to [kg/h s]
 
     return μ_mix
 end
 
 ## Other functions ##
 
-# Reaction rate of if
+# Reaction rate of i
 function r_i_func(C_i, d_cat, θ, P, T)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -155,29 +155,31 @@ function r_i_func(C_i, d_cat, θ, P, T)
         C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
 
-    R_joule = 8.314
+    
     K_eq = exp((4577.8 / T) - 4.33)
-    r_co_min = d_cat * (1 - θ) * (2.96e5) * exp(-47400 / (R_joule * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
-
-    r_i = [-r_co_min, -r_co_min, r_co_min, r_co_min, 0]
+    R_joule = 8.314
+    F_press = P^(0.5-P/500)
+    r_co_min = (-1) * d_cat * (1 - θ) * F_press * (2.96e5) * exp(-47400 / (R_joule * T)) * P^2 * (y[1] * y[4] - ((y[2] * y[3]) / K_eq))
+    r_co_min = r_co_min * 1000 # for conversion to [mol/m^3 h]
+    
+    #       CO,         CO2,        H2,     H2O,    N2
+    r_i = [r_co_min, -r_co_min, -r_co_min, r_co_min, 0]
 
     return r_i
 end
 
 # Bed porosity
 function ϵ_b_func(D_rct, D_cat)
-    0.38 + 0.073 * (1 - (D_rct / D_cat - 2)^2 / (D_rct / D_cat)^2)
+    0.38 + 0.073 * (1 - ((D_rct / D_cat - 2)^2) / ((D_rct / D_cat)^2))
 end
 
 # Molar flux
-function G_func(F_0, D_rct, ϵ_b)
-    (4 * F_0) / (pi * D_rct^2 * ϵ_b)
+function G_func(F_0, D_rct, ϵ_b, M)
+    (0.001 * 4 * F_0 * M) / (pi * D_rct^2 * ϵ_b) # 0.001 for conversion to [kg/m^2 h]
 end
 
 # Mass transfer coefficient
-function k_c_i_func(T_c, P_c, R, C_i, D_i_m)
-    ρ = P_c / (R * T_c)
-    
+function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -186,16 +188,22 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m)
     M_i = [28.01, 44.01, 2.016, 18.016, 28.014]
     M = sum(y .* M_i)
 
-    μ = μ_mix_func(y, T_c, M_i)
+    ρ = (P_c * M) / (R * T_c) # [kg/m^3]
 
-    D_cat = 0.25e-3
-    D_rct = 12.7e-3 # [m]
-    F = 10 # [mol/h]
+    μ = μ_mix_func(y, T_c, M_i) # [kg/h s]
     
     ϵ_b = ϵ_b_func(D_rct, D_cat)
-    G = G_func(F, D_rct, ϵ_b)
+    G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]
 
-    k_c_i =  0.357 * abs.(((ρ * M * D_i_m) / μ)).^(2/3) * (G / (ρ * M * ϵ_b)) * abs((μ / (D_cat * G)))^0.359
-    
-    return k_c_i
+    # k_c_i_1 =  0.357 * (((ρ * D_i_m) / μ)).^(2/3) * (G / (ρ * ϵ_b)) * ((μ / (D_cat * G)))^0.359 # in paper
+    k_c_i_2 = 0.357 * G * ((ρ * D_i_m) / μ).^(2/3) / (ρ * ϵ_b * ((D_cat * G / μ)^0.359)) # in Jacobian files code (Very small difference in results, 6e-14 difference in k_c_i[1])
+
+    return k_c_i_2
+end
+using DelimitedFiles
+# util function to write data to csv
+function write_to_csv(filename::String, data, delimiter::String=",")
+    folder_path = "results_particle"
+    file_path = joinpath(folder_path, filename)
+    writedlm(file_path, data, delimiter)
 end
