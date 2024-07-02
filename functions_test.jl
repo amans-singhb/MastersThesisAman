@@ -1,6 +1,8 @@
+#### Test functions for the WGS model (mortly outdated) ####
+
 using Pkg
 Pkg.activate("WGS")
-include("WGS_functions.jl")
+include("functions_WGS.jl")
 
 ### Test functions ###
 
@@ -15,13 +17,13 @@ M = [16.04, 30.07, 44.10]
 theta = 0.8
 tau = 1.0
 y = [0.2, 0.2, 0.2, 0.2, 0.2]
-D_ij_mat = D_ij_matrix_func(300, 1)
+# D_ij_mat = D_ij_matrix_func(300, 1)
 
 #D_eff_ij = zeros(size(D_ij_mat))
 
 D_eff_ij = D_eff_ij_func(D_ij_mat, theta, tau)
 
-D_i_m = D_i_m_func(y, D_eff_ij)
+# D_i_m = D_i_m_func(y, D_eff_ij)
 
 
 ## Test C_p_func ##
