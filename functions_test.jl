@@ -127,3 +127,15 @@ teste = Dr.(D_ij_matrix_func(T, P, matrix_D_ij))
 derivatives = expand_derivatives.(teste)
 ## Register symbolic functions ###
 derivatives[1, 2] =#
+
+# y_i = C_i_val / sum(C_i_val)
+# n = F_0 * y_i
+# V = π * (D_rct_val/2)^2 * L_val
+# C = n / V
+# C./C_i_val
+
+
+# f1 = 1e-5
+# n1 = f1 * y_i
+# V1 = π * ((12.7e-3)/2)^2 * (4.8e-3)
+# c1 = n1 / V1
