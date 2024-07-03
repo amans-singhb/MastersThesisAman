@@ -86,7 +86,7 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
-# Domain
+# Domain (time is in [h])
 domains = [t ∈ Interval(0.0, 1.0),
     r ∈ Interval(0.0, rad_cat)]
 
@@ -111,8 +111,8 @@ sol = solve(prob, KenCarp47(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 sols = sol[C_c_1(t, r)]
 
 # Plotting 
-seconds = 0.1
-index_sol = Int(seconds/0.001)
+time = 0.1
+index_sol = Int(time/0.001)
 solution = sols[1:index_sol, :]
 
 using Plots

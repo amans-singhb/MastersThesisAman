@@ -86,8 +86,8 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
-# Domain
-domains = [t ∈ Interval(0.0, 1.0),
+# Domain (time is in [h])
+domains = [t ∈ Interval(0.0, 0.01),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
@@ -106,13 +106,13 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
-sol = solve(prob, KenCarp47(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 sols = sol[C_c_1(t, r)]
 
 # Plotting 
-seconds = 0.1
-index_sol = Int(seconds/0.001)
+time = 0.01
+index_sol = Int(time/0.0001)
 solution = sols[1:index_sol, :]
 
 using Plots
