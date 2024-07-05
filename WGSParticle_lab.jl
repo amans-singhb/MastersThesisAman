@@ -133,3 +133,32 @@ write_to_csv("C_c_5_lab.csv", sol[C_c_5(t, r)], folder)
 # 1. constant diffusivity
 # 2. no Reaction
 # 3. constant temperature and pressure
+
+function C_c_i_diff_sphere(M_i, radius, D_i, t, r, N)
+    sum_term = 0
+    for n in 1:N
+        exponent_term = (- n^2 * π^2 * D_i * t) / radius^2
+        exp_term = exp(exponent_term)
+        sinus_term = (π * n * r) / radius
+        sin_term = sin(sinus_term)
+        sum_term += n/r * sin_term * exp_term
+        print("n = ", n, ": \t" , sum_term,", ", sin_term, ", ", sinus_term, ", ", exp_term, ", ", exponent_term, "\n")
+    end
+    
+    c = (M_i / (2 * radius^2)) * sum_term
+    
+    return c
+end
+
+t_span = range(0, 0.01, length = 101)
+r_span = range(0, rad_cat, length = 21)
+
+y_1 = C_c_i_init / sum(C_c_i_init)
+n_1 = F_0 * y_1
+D_1 = sol[D_1_m]
+
+D_1[2,2], t_span[2], r_span[2]
+
+c_1 = C_c_i_diff_sphere(n_1[1], rad_cat, D_1[2,2], t_span[1], r_span[2], 1)
+
+c_2 = C_c_i_diff_sphere(C_c_i_init[1], rad_cat, D_i_m_bulk[1], t_span[1], r_span[2], 1)
