@@ -363,3 +363,12 @@ end
 function a_v_func(ϵ_b, D_cat)
     6 * (1 - ϵ_b) / D_cat
 end
+
+# util function to write data to csv
+function write_to_csv(filename::String, data, folder_path::String, delimiter::String=",")
+    if !isdir(folder_path)
+        mkdir(folder_path)
+    end
+    file_path = joinpath(folder_path, filename)
+    writedlm(file_path, data, delimiter)
+end

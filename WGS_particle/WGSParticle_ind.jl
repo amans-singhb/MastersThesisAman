@@ -128,7 +128,7 @@ using Plots
 plot(solution)
 
 using DelimitedFiles
-folder = "results_particle_ind"
+folder = "WGS_particle/results_particle_ind"
 write_to_csv("C_c_1_ind.csv", sol[C_c_1(t, r)], folder)
 write_to_csv("C_c_2_ind.csv", sol[C_c_2(t, r)], folder)
 write_to_csv("C_c_3_ind.csv", sol[C_c_3(t, r)], folder)
