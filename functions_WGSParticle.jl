@@ -3,7 +3,7 @@
 using Pkg
 Pkg.activate("WGS")
 
-### Defining naming conventions and numeration ###
+### Defining naming conventions, numeration and units ###
 
 # for species i and j have the following numeration:
 # 1 - CO
@@ -12,13 +12,21 @@ Pkg.activate("WGS")
 # 4 - H2O
 # 5 - N2
 
+# For commmonly used parameters and variables:
+# t - time [h]
+# r - radial coordinate [m]
+# T - temperature [K]
+# P - pressure [atm]
+# C_i - concentration of species i [mol/m^3]
+# R - ideal gas constant [m^3 atm / K kmol]
+
 ### Define functions for physical properties ###
 
 using Symbolics
 
 ## Diffusivity ##
 
-# Binary gas diffusivities for component pairs {T [K], P [atm], D_ij [cm^2/s]}
+# Binary gas diffusivities for component pairs [cm^2/s]
 function D_ij_func_a(T, P, A, B, C, D, E, F)
     (A * T^B / P) * (log(C / T))^(-2 * D) * exp(-E / T - F / T^2)
 end
@@ -31,7 +39,7 @@ function D_ij_func_c(T, P, A, B)
     (A * T + B) / P
 end
 
-# Matrix of all binary gas diffusivities for component pairs (SPECIFIC TO THE SYSTEM)
+# Matrix of all binary gas diffusivities for component pairs [cm^2/s]
 function D_ij_matrix_func(T, P, D_ij_matrix) 
     #p = [eq, i, j, A,      B,      C,  D,  E,   F] (C is set to 1 where it has no value, to avoid log(0) error, D accounts for lack of C in eq = "a" )
     p = ["a" 3 1 15.39e-3 1.548 0.316e8 1 -2.80 1067;
@@ -67,12 +75,12 @@ function D_ij_matrix_func(T, P, D_ij_matrix)
     return D_ij_matrix
 end
 
-# Effective diffusivity of i in j ###[TESTED]###
+# Effective diffusivity of i in j
 function D_eff_ij_func(D_ij, θ, τ)
     D_ij .* (θ / τ)
 end
 
-# Effective diffusivity of i in the mixture ###[TESTED]###
+# Effective diffusivity of i in the mixture [m^2/h]
 function D_i_m_func(C_i, θ, τ, T, P)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -108,7 +116,7 @@ end
 
 ## Viscosity ##
 
-# Viscosity of gas phase of species i {T [K], μ [N s/m^2]}
+# Viscosity of gas phase of species i [N s/m^2]
 function μ_i_func(T, i)
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
@@ -123,7 +131,7 @@ function μ_i_func(T, i)
     return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
-# Viscosity of gas phase mixture ###[TESTED]###
+# Viscosity of gas phase mixture [kg/h m]
 function μ_mix_func(y, T, M_i)
     μ_i = [μ_i_func(T, i) for i in 1:5]
 
@@ -140,14 +148,14 @@ function μ_mix_func(y, T, M_i)
         μ_mix += numerator / denominator
     end
 
-    μ_mix = μ_mix * 3600 # for conversion to [kg/h s]
+    μ_mix = μ_mix * 3600 # for conversion to [kg/h m]
 
     return μ_mix
 end
 
 ## Other functions ##
 
-# Reaction rate of i
+# Reaction rate of i [mol/m^3 h]
 function r_i_func(C_i, d_cat, θ, P, T)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -173,12 +181,12 @@ function ϵ_b_func(D_rct, D_cat)
     0.38 + 0.073 * (1 - ((D_rct / D_cat - 2)^2) / ((D_rct / D_cat)^2))
 end
 
-# Molar flux
+# Molar flux [kg/m^2 h]
 function G_func(F_0, D_rct, ϵ_b, M)
     (0.001 * 4 * F_0 * M) / (pi * D_rct^2 * ϵ_b) # 0.001 for conversion to [kg/m^2 h]
 end
 
-# Mass transfer coefficient
+# Mass transfer coefficient [m/h]
 function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -190,7 +198,7 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
 
     ρ = (P_c * M) / (R * T_c) # [kg/m^3]
 
-    μ = μ_mix_func(y, T_c, M_i) # [kg/h s]
+    μ = μ_mix_func(y, T_c, M_i) # [kg/h m]
     
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]

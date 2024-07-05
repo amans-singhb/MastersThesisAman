@@ -4,7 +4,7 @@ using Pkg
 Pkg.activate("WGS")
 include("functions_WGSParticle.jl")
 
-### Defining naming conventions and numeration ###
+### Defining naming conventions, numeration and units ###
 
 # for species i and j have the following numeration:
 # 1 - CO
@@ -12,6 +12,14 @@ include("functions_WGSParticle.jl")
 # 3 - H2
 # 4 - H2O
 # 5 - N2
+
+# For commmonly used parameters and variables:
+# t - time [h]
+# r - radial coordinate [m]
+# T - temperature [K]
+# P - pressure [atm]
+# C_i - concentration of species i [mol/m^3]
+# R - ideal gas constant [m^3 atm / K kmol]
 
 #### Particle balance WGS reactor model ####
 
