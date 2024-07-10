@@ -116,7 +116,7 @@ end
 
 ## Heat capacity ##
 
-# Heat capacity for i {T [K], C_p_i [cal/mol K]}
+# Heat capacity for i [J/mol K]
 function C_p_i_func(T)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -127,10 +127,14 @@ function C_p_i_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    return A + B * T + C * T^2 + D / abs(T)^2
+    C_p_i = A + B * T + C * T^2 + D / abs(T)^2
+    
+    C_p_i = C_p_i * 4.184 # for conversion to [J/mol K]
+
+    return C_p_i
 end
 
-# Heat capacity of mixture
+# Heat capacity of mixture [J/mol K]
 function C_p_func(C_i, T)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -141,8 +145,6 @@ function C_p_func(C_i, T)
     C_p_i = C_p_i_func(T)
     
     C_p = sum(y .* C_p_i)
-
-    C_p = C_p * 4.184 # for conversion to [J/mol K]
 
     return C_p
 end
@@ -188,7 +190,7 @@ end
 
 ## Enthalpy ##
 
-# Heat capacity integrated for i {T [K], C_p_i [J/mol]}
+# Heat capacity integrated for i [J/mol]
 function C_p_i_integrated_func(T)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -206,9 +208,9 @@ function C_p_i_integrated_func(T)
     return C_p_i_integrated
 end
 
-# Enthalpy of i
+# Enthalpy of i [J/mol]
 function H_i_func(T)
-    H_form = [-110.53, -393.51, 0, -241.83, 0] * 1000 # [J/mol]
+    H_form = [-110.53, -393.51, 0, -241.83, 0] * 1000 # for conversion to [J/mol]
 
     C_p_i_integrated_298 = C_p_i_integrated_func(298)
     C_p_i_integrated_T = C_p_i_integrated_func(T)
