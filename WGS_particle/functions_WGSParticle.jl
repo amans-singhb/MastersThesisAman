@@ -117,7 +117,7 @@ end
 ## Viscosity ##
 
 # Viscosity of gas phase of species i [N s/m^2]
-function μ_i_func(T, i)
+function μ_i_func(T)
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
@@ -125,15 +125,14 @@ function μ_i_func(T, i)
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
 
-    row = p[i, :]
-    A, B, C, D = row[2], row[3], row[4], row[5]
+    A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
     return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Viscosity of gas phase mixture [kg/h m]
 function μ_mix_func(y, T, M_i)
-    μ_i = [μ_i_func(T, i) for i in 1:5]
+    μ_i = μ_i_func(T)
 
     μ_mix = 0
 
