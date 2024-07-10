@@ -117,7 +117,7 @@ end
 ## Heat capacity ##
 
 # Heat capacity for i {T [K], C_p_i [cal/mol K]}
-function C_p_i_func(T, i)
+function C_p_i_func(T)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
         2 10.34 2.74e-3 0 -1.955e5;
@@ -125,8 +125,7 @@ function C_p_i_func(T, i)
         4 8.22 0.15e-3 1.34e-6 0;
         5 6.50 1.00e-3 0 0]
 
-    row = p[i, :]
-    A, B, C, D = row[2], row[3], row[4], row[5]
+    A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
     return A + B * T + C * T^2 + D / abs(T)^2
 end
@@ -139,9 +138,11 @@ function C_p_func(C_i, T)
         C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
     
-    C_p_i = [C_p_i_func(T, i) for i in 1:5]
+    C_p_i = C_p_i_func(T)
     
     C_p = sum(y .* C_p_i)
+
+    C_p = C_p * 4.184 # for conversion to [J/mol K]
 
     return C_p
 end
@@ -149,7 +150,7 @@ end
 ## Viscosity ##
 
 # Viscosity of gas phase of species i [N s/m^2]
-function μ_i_func(T, i)
+function μ_i_func(T)
     # p = [i, A, B, C, D]
     p = [1 1.1127e-6 0.5338 94.7 0;
         2 2.148e-6 0.46 290 0;
@@ -157,15 +158,14 @@ function μ_i_func(T, i)
         4 1.7096e-8 1.1146 0 0;
         5 6.5592e-7 0.6081 54.714 0]
 
-    row = p[i, :]
-    A, B, C, D = row[2], row[3], row[4], row[5]
+    A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
     return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
 end
 
 # Viscosity of gas phase mixture [kg/h m]
 function μ_mix_func(y, T, M_i)
-    μ_i = [μ_i_func(T, i) for i in 1:5]
+    μ_i = μ_i_func(T)
 
     μ_mix = 0
 
@@ -188,7 +188,7 @@ end
 
 ## Enthalpy ##
 
-# Heat capacity integrated for i {T [K], C_p_i [cal/mol K]}
+# Heat capacity integrated for i {T [K], C_p_i [J/mol]}
 function C_p_i_integrated_func(T)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -199,12 +199,16 @@ function C_p_i_integrated_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    return A * T + B/2 * T^2 + C/3 * T^3 - D / T
+    C_p_i_integrated = A * T + B/2 * T^2 + C/3 * T^3 - D / T
+
+    C_p_i_integrated = C_p_i_integrated * 4.184 # for conversion to [J/mol]
+
+    return C_p_i_integrated
 end
 
 # Enthalpy of i
 function H_i_func(T)
-    H_form = [-110.53, -393.51, 0, -241.83, 0] # [kJ/mol]
+    H_form = [-110.53, -393.51, 0, -241.83, 0] * 1000 # [J/mol]
 
     C_p_i_integrated_298 = C_p_i_integrated_func(298)
     C_p_i_integrated_T = C_p_i_integrated_func(T)
