@@ -164,6 +164,15 @@ function C_p_cal_func(C_i, T)
     return C_pc
 end
 
+# Heat capacity of catalyst [J/mol K]
+function C_p_cat_func(T)
+    C_p_cat = (0.435157281 * (7.39634088 + 0.00328222 * T - 300420.37 / T^2 + 88.2034012 / (T)^0.5) + 0.475928864 * (9.27078814 + 0.01612958 * T - 5.319e-05*T^2 + 1.0342e-07 * T^3) + 0.088913855 * ( 17.5417116 + 0.05947003 * T - 0.0001893*T^2 + 1.6385e-07 * T^3 + 2.6593e-09 * T^4)) # [cal/mol K]
+
+    C_p_cat = C_p_cat * 4.184 # for conversion to [J/mol K]
+
+    return C_p_cat
+end
+
 ## Viscosity ##
 
 # Viscosity of gas phase of species i [N s/m^2]
@@ -354,7 +363,7 @@ function k_c_i_func(T, P, R, C_i, D_i_m, D_cat, D_rct, F)
     return k_c_i_2
 end
 
-# Heat transfer coefficient
+# Heat transfer coefficient [J/h m^2 K]
 function h_f_func(T, C_i, D_cat, D_rct, F)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -373,9 +382,11 @@ function h_f_func(T, C_i, D_cat, D_rct, F)
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]
 
-    # h_f_1 = @. 1.37 * (0.357 / ϵ_b) * ((Cpc * G) / M) * (μ / ( D_cat * G))^0.359 * ((λ * M)/ (Cpc * μ))^(2/3) # in the paper
-    h_f_2 = @. 1.37 * 0.357 * (Cpc * G / M) / (ϵ_b * (D_cat * G / μ)^0.359 * ((Cpc * μ) / (λ * M))^(2/3) ) # in Jacobian files code
-    
+    # h_f_1 = @. 1.37 * (0.357 / ϵ_b) * ((Cpc * G) / M) * (μ / ( D_cat * G))^0.359 * ((λ * M)/ (Cpc * μ))^(2/3) # in the paper [kcal/h m^2 K]
+    h_f_2 = @. 1.37 * 0.357 * (Cpc * G / M) / (ϵ_b * (D_cat * G / μ)^0.359 * ((Cpc * μ) / (λ * M))^(2/3) ) # in Jacobian files code [kcal/h m^2 K]
+
+    h_f_2 = h_f_2 * 4184 # for conversion to [J/h m^2 K]
+
     return h_f_2
 end
 
