@@ -52,6 +52,7 @@ C_c_i_init = C_i_val * 0.75
 # Mass transfer coefficient
 D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_c_val, P_c_val) # [m^2/h]
 k_c_i_val = k_c_i_func(T_c_val, P_c_val, R_atmm3, C_i_val, D_i_m_bulk, D_cat_val, D_rct_val, F_0)
+h_f = h_f_func(T_c_val, C_i_val, D_cat_val, D_rct_val, F_0)
 
 using ModelingToolkit
 

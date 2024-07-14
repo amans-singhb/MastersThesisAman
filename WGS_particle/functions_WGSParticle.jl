@@ -127,7 +127,7 @@ function μ_i_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
+    return (A * T^B) / (1 + C / T + D / T^2)
 end
 
 # Viscosity of gas phase mixture [kg/h m]

@@ -127,7 +127,7 @@ function C_p_i_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    C_p_i = A + B * T + C * T^2 + D / abs(T)^2
+    C_p_i = A + B * T + C * T^2 + D / T^2
     
     C_p_i = C_p_i * 4.184 # for conversion to [J/mol K]
 
@@ -149,6 +149,21 @@ function C_p_func(C_i, T)
     return C_p
 end
 
+# Heat capacity of mixture [kcal/kmol K]
+function C_p_cal_func(C_i, T)
+    y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
+    
+    C_p_i = C_p_i_func(T) * (1/4.184)
+    
+    C_pc = sum(y .* C_p_i)
+
+    return C_pc
+end
+
 ## Viscosity ##
 
 # Viscosity of gas phase of species i [N s/m^2]
@@ -162,7 +177,9 @@ function μ_i_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    return (A * abs(T)^B) / (1 + C / T + D / abs(T)^2)
+    μ_i = @. (A * T^B) / (1 + C / T + D / T^2)
+
+    return μ_i
 end
 
 # Viscosity of gas phase mixture [kg/h m]
@@ -187,10 +204,71 @@ function μ_mix_func(y, T, M_i)
     return μ_mix
 end
 
+## Thermal conductivity ##
+
+# Thermal conductivity of gas phase of species i [kcal/h m K]
+function λ_i_func(T)
+    # p = [i, A, B, C, D]
+    p = [1 5.1489e-4 0.6863 57.13 501.92;
+        2 3.1728 -0.3838 964 1.86e6;
+        3 2.2811e-3 0.7452 12 0;
+        4 5.3345e-6 1.3973 0 0;
+        5 2.8497e-4 0.7722 16.323 373.72]
+
+    A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
+
+    λ_i =  @. (A * T^B) / (1 + C / T + D / T^2)
+
+    return λ_i
+end
+
+# Binary interaction parameter A_ij 
+function A_ij_func(i, j, μ_i, M_i, T, T_boil)
+    C = 1.0 # [-]
+    if i == j
+        return 1.0
+    else
+        S_i = 1.5 * T_boil[i]
+        S_j = 1.5 * T_boil[j]
+        S_ij = C * (S_i * S_j)^0.5
+
+        A_ij = (1/4) * (1 + ((μ_i[i]/μ_i[j]) * (M_i[j]/M_i[i])^0.75 * ((T + S_i) / (T + S_j)))^0.5 )^2 * ((T + S_ij) / (T + S_i))
+        return A_ij
+    end
+end
+
+# Thermal conductivity of mixture at atmospheric pressure [kcal/h m K] (also works above atmospheric pressure)
+function λ_dash_func(C_i, T)
+    y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
+    
+    M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [kg/kmol]
+    T_boil = [81.65, 194.7, 20.35, 373, 77.36] # [K]
+    μ_i = μ_i_func(T) # [kg/h m]
+    λ_i = λ_i_func(T) # [kcal/h m K]
+
+    λ_dash = 0
+
+    for i in eachindex(y)
+        i = i[1]
+        numerator = y[i] * λ_i[i]
+        denominator = 0
+        for j in eachindex(y)
+            j = j[1]
+            denominator += y[j] * A_ij_func(i, j, μ_i, M_i, T, T_boil)
+        end
+        λ_dash += numerator / denominator
+    end
+
+    return λ_dash 
+end
 
 ## Enthalpy ##
 
-# Heat capacity integrated for i [J/mol]
+# Heat capacity integrated for i [J/mol] (enthalpy for i at T)
 function C_p_i_integrated_func(T)
     # p = [i, A, B, C, D]
     p = [1 6.60 1.20e-3 0 0;
@@ -254,18 +332,18 @@ function G_func(F_0, D_rct, ϵ_b, M)
 end
 
 # Mass transfer coefficient [m/h]
-function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
+function k_c_i_func(T, P, R, C_i, D_i_m, D_cat, D_rct, F)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
-    M_i = [28.01, 44.01, 2.016, 18.016, 28.014]
+    M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [kg/kmol]
     M = sum(y .* M_i)
 
-    ρ = (P_c * M) / (R * T_c) # [kg/m^3]
+    ρ = (P * M) / (R * T) # [kg/m^3]
 
-    μ = μ_mix_func(y, T_c, M_i) # [kg/h m]
+    μ = μ_mix_func(y, T, M_i) # [kg/h m]
     
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]
@@ -277,8 +355,28 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
 end
 
 # Heat transfer coefficient
-function h_f_func(ϵ_b, C_p, G, M, μ, D_cat, λ)
-    1.37 * (0.357 / ϵ_b) * ((C_p * G) / M) * abs((μ / ( D_cat * G)))^0.359 * abs(((λ * M)/ (C_p * μ)))^(2/3)
+function h_f_func(T, C_i, D_cat, D_rct, F)
+    y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
+        C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
+    M_i = [28.01, 44.01, 2.016, 18.016, 28.014] # [kg/kmol]
+    M = sum(y .* M_i)
+
+    Cpc = C_p_cal_func(C_i, T)
+
+    μ = μ_mix_func(y, T, M_i) # [kg/h m]
+
+    λ = λ_dash_func(C_i, T) # [kcal/h m K]
+
+    ϵ_b = ϵ_b_func(D_rct, D_cat)
+    G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]
+
+    # h_f_1 = @. 1.37 * (0.357 / ϵ_b) * ((Cpc * G) / M) * (μ / ( D_cat * G))^0.359 * ((λ * M)/ (Cpc * μ))^(2/3) # in the paper
+    h_f_2 = @. 1.37 * 0.357 * (Cpc * G / M) / (ϵ_b * (D_cat * G / μ)^0.359 * ((Cpc * μ) / (λ * M))^(2/3) ) # in Jacobian files code
+    
+    return h_f_2
 end
 
 using DelimitedFiles
