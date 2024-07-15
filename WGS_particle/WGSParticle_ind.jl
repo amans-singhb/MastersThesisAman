@@ -24,8 +24,8 @@ include("functions_WGSParticle.jl")
 #### Particle balance WGS reactor model ####
 
 ### Listing some assumptions made for this part of the code ###
-# 1. T_c is kept constant, as we are only interested in the evolution of C_c_i
-# 2. P_c is kept constant
+# 1. T_c = T, and is kept constant, as we are only interested in the evolution of C_c_i
+# 2. P_c = P, and is kept constant
 
 ### PDE system ###
 
@@ -33,27 +33,29 @@ include("functions_WGSParticle.jl")
 D_rct_val = 4.0 # [m] 
 rad_cat = 0.006 # [m]
 D_cat_val = rad_cat * 2 # [m] 
+
 d_cat_val = 5904 # [kg/m^3] [param5]
 
 θ_val = 0.55 #[-] [param3]
 τ_val = 5 #[-] [param4]
 
 F_0 = 18398000 / 60.33863907329515 # [mol/h] (division due to inconsistency with concentrations)
-T_c_val = 505.15 # [K] [param1]
-P_c_val = 54.269 # [atm] [param6]
+T_val = 505.15 # [K] [param1]
+P_val = 54.269 # [atm] [param6]
+
 R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 C_i_val = [47.53114319; 265.2948608; 260.3569031; 381.4163208; 15.96712494;]
 C_c_i_init =  C_i_val * 0.75
 
 # Mass transfer coefficient
-D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_c_val, P_c_val)
-k_c_i_val = k_c_i_func(T_c_val, P_c_val, R_atmm3, C_i_val, D_i_m_bulk, D_cat_val, D_rct_val, F_0)
+D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_val, P_val)
+k_c_i_val = k_c_i_func(T_val, P_val, R_atmm3, C_i_val, D_i_m_bulk, D_cat_val, D_rct_val, F_0)
 
 using ModelingToolkit
 
 ## Parameters ##
-@parameters t r T_c R θ τ d_cat P_c C_i[1:5] k_c_i[1:5]
+@parameters t r T R θ τ d_cat P C_i[1:5] k_c_i[1:5]
 
 ## Differential ##
 Dt = Differential(t)
@@ -61,7 +63,8 @@ Dr = Differential(r)
 Drr = Differential(r)^2
 
 ## Variables ##
-@variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..) D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r)
+@variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..)
+@variables D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r)
 # @variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..) D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r) r_1(t, r) r_2(t, r) r_3(t, r) r_4(t, r) r_5(t, r)
 
 C_c_i = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r)]
@@ -72,13 +75,13 @@ D_i_m = [D_1_m, D_2_m, D_3_m, D_4_m, D_5_m]
 ## Equations and Differential Equations ##
 
 # Differential of function D_i_m
-Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T_c, P_c))
+Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T, P))
 expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
 using ModelingToolkit: scalarize
 
-eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T_c, P_c))...]
-# eqs_ri = [scalarize(r_i .~ r_i_func(C_c_i, d_cat, θ, P_c, T_c))...]
+eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T, P))...]
+# eqs_ri = [scalarize(r_i .~ r_i_func(C_c_i, d_cat, θ, P, T))...]
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) for i in 1:5]
 # DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
 
@@ -101,7 +104,7 @@ domains = [t ∈ Interval(0.0, 1.0),
 # System
 vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m]
 # vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m, r_1, r_2, r_3, r_4, r_5]
-params_scal = [T_c => T_c_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val, P_c => P_c_val]
+params_scal = [T => T_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val, P => P_val]
 params_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
 params_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
 params = [params_scal...; params_vec_C_i...; params_vec_k_c_i...;]

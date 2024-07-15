@@ -127,7 +127,9 @@ function μ_i_func(T)
 
     A, B, C, D = p[:, 2], p[:, 3], p[:, 4], p[:, 5]
 
-    return (A * T^B) / (1 + C / T + D / T^2)
+    μ_i = @. (A * T^B) / (1 + C / T + D / T^2)
+    
+    return μ_i
 end
 
 # Viscosity of gas phase mixture [kg/h m]
@@ -186,7 +188,7 @@ function G_func(F_0, D_rct, ϵ_b, M)
 end
 
 # Mass transfer coefficient [m/h]
-function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
+function k_c_i_func(T, P, R, C_i, D_i_m, D_cat, D_rct, F)
     y = [C_i[1]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[2]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[3]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
@@ -195,9 +197,9 @@ function k_c_i_func(T_c, P_c, R, C_i, D_i_m, D_cat, D_rct, F)
     M_i = [28.01, 44.01, 2.016, 18.016, 28.014]
     M = sum(y .* M_i)
 
-    ρ = (P_c * M) / (R * T_c) # [kg/m^3]
+    ρ = (P * M) / (R * T) # [kg/m^3]
 
-    μ = μ_mix_func(y, T_c, M_i) # [kg/h m]
+    μ = μ_mix_func(y, T, M_i) # [kg/h m]
     
     ϵ_b = ϵ_b_func(D_rct, D_cat)
     G = G_func(F, D_rct, ϵ_b, M) # [kg/m^2 h]
