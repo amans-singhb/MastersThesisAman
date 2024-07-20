@@ -227,7 +227,7 @@ function make_results(params, prob, parent_folder::String = "WGS_particle/result
         mkdir(parent_folder)
     end
 
-    temp_range = [393; 483; 573;]
+    temp_range = [393.0; 483.0; 573.0;]
     pres_range = [1.0; 2.0; 3.0;]
     # temp_range = range(393, 573, length = 10)
     # pres_range = range(1, 3, length = 11)
