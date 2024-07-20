@@ -400,3 +400,43 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
     file_path = joinpath(folder_path, filename)
     writedlm(file_path, data, delimiter)
 end
+
+# util function to make results (change parent_folder to save results in appropriate folder)
+function make_results(params, prob, parent_folder::String = "WGS_particle_expanded/results_particle_expanded_lab_parameters")
+    if !isdir(parent_folder)
+        mkdir(parent_folder)
+    end
+
+    temp_range = [393; 483; 573;]
+    pres_range = [1; 2; 3;]
+    # temp_range = range(393, 573, length = 10)
+    # pres_range = range(1, 3, length = 11)
+
+    for i in eachindex(temp_range)
+        for j in eachindex(pres_range)
+            newparams = params[3:end]
+
+            temp = [T => temp_range[i]]
+            pres = [P => pres_range[j]]
+
+            newparams = [temp; pres; newparams]
+            newprob = remake(prob, p = newparams)
+            newsol = solve(newprob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+
+            string_param = string(temp_range[i]) * "K_" * string(pres_range[j]) * "atm"
+            folder = parent_folder * "/param" * string_param
+
+            string_cc1 = "C_c_1_" * string_param * "_lab.csv"
+            string_cc2 = "C_c_2_" * string_param * "_lab.csv"
+            string_cc3 = "C_c_3_" * string_param * "_lab.csv"
+            string_cc4 = "C_c_4_" * string_param * "_lab.csv"
+            string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+
+            write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
+            write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
+            write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
+            write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
+            write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
+        end
+    end    
+end
