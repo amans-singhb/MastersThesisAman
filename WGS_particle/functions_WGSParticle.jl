@@ -221,7 +221,7 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
     writedlm(file_path, data, delimiter)
 end
 
-# util function to make results (change parent_folder to save results in appropriate folder)
+# util function to make results (change parent_folder to save results in appropriate folder) CHECK OUT ISSUES WITH THE FUNCTION, SOME ITERATIONS TAKE TO LONG (MAYBE MAKE SINGLE USE AND HAVE LOOP IN SCRIPT?)
 function make_results(params, prob, parent_folder::String = "WGS_particle/results_particle_lab_parameters")
     if !isdir(parent_folder)
         mkdir(parent_folder)
@@ -234,6 +234,10 @@ function make_results(params, prob, parent_folder::String = "WGS_particle/result
 
     for i in eachindex(temp_range)
         for j in eachindex(pres_range)
+            #delete after test
+            string_param = string(temp_range[i]) * "K_" * string(pres_range[j]) * "atm"
+            print("Solving ODE for: ", string_param, "\n")
+            #
             newparams = params[3:end]
 
             temp = [T => temp_range[i]]
@@ -245,6 +249,10 @@ function make_results(params, prob, parent_folder::String = "WGS_particle/result
 
             string_param = string(temp_range[i]) * "K_" * string(pres_range[j]) * "atm"
             folder = parent_folder * "/param" * string_param
+
+            #delete after test
+            print("Done solving ODE for: ", string_param, "\n")
+            #
 
             string_cc1 = "C_c_1_" * string_param * "_lab.csv"
             string_cc2 = "C_c_2_" * string_param * "_lab.csv"

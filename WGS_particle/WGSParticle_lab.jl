@@ -46,8 +46,8 @@ R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 # Inlet values
 F_0 = 1e-5 # [mol/h] 
-T_val = 500 # [K] [param1]
-P_val = 1.3 # [atm] [param6]
+T_val = 573.0 # [K] [param1]
+P_val = 3.0 # [atm] [param6]
 
 C_i_val = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
 C_c_i_init = C_i_val * 0.75
@@ -117,10 +117,10 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 prob = discretize(WGS_pde, discretization)
 
 # Generate results
-make_results(params, prob)
+# make_results(params, prob)
 
 # Solving ODE
-# sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
 
@@ -133,13 +133,13 @@ make_results(params, prob)
 
 # plot(solution)
 
-# using DelimitedFiles
-# folder = "WGS_particle/results_particle_lab"
-# write_to_csv("C_c_1_lab.csv", sol[C_c_1(t, r)], folder)
-# write_to_csv("C_c_2_lab.csv", sol[C_c_2(t, r)], folder)
-# write_to_csv("C_c_3_lab.csv", sol[C_c_3(t, r)], folder)
-# write_to_csv("C_c_4_lab.csv", sol[C_c_4(t, r)], folder)
-# write_to_csv("C_c_5_lab.csv", sol[C_c_5(t, r)], folder)
+using DelimitedFiles
+folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
+write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)
+write_to_csv("C_c_2_573.0K_3.0atm_lab.csv", sol[C_c_2(t, r)], folder)
+write_to_csv("C_c_3_573.0K_3.0atm_lab.csv", sol[C_c_3(t, r)], folder)
+write_to_csv("C_c_4_573.0K_3.0atm_lab.csv", sol[C_c_4(t, r)], folder)
+write_to_csv("C_c_5_573.0K_3.0atm_lab.csv", sol[C_c_5(t, r)], folder)
 
 #### Particle balance for diffusion within a sphere ####
 
