@@ -260,3 +260,58 @@ function make_results(T_val, P_val, params, prob, parent_folder::String = "WGS_p
     write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
     write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
 end
+
+using Plots
+
+# util function to read data from csv and plot (change folder to save results in appropriate folder)
+function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder::String = "WGS_particle_reaction/figures_particle_reaction_lab_parameters",  folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters/param")
+    if !isdir(fig_folder)
+        mkdir(fig_folder)
+    end
+    
+    string_param = string(T_val) * "K_" * string(P_val) * "atm"
+    folder_path = folder * string_param * "/"
+
+    figures_folder = fig_folder * "/param" * string_param
+    if !isdir(figures_folder)
+        mkdir(figures_folder)
+    end
+    
+    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
+    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
+    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
+    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
+    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+
+    file_path_cc1 = joinpath(folder_path, string_cc1)
+    file_path_cc2 = joinpath(folder_path, string_cc2)
+    file_path_cc3 = joinpath(folder_path, string_cc3)
+    file_path_cc4 = joinpath(folder_path, string_cc4)
+    file_path_cc5 = joinpath(folder_path, string_cc5)
+
+    Cc1 = readdlm(file_path_cc1, ',', Float64, '\n')
+    Cc2 = readdlm(file_path_cc2, ',', Float64, '\n')
+    Cc3 = readdlm(file_path_cc3, ',', Float64, '\n')
+    Cc4 = readdlm(file_path_cc4, ',', Float64, '\n')
+    Cc5 = readdlm(file_path_cc5, ',', Float64, '\n')
+
+    points = Int((t_stop/0.001) * 100) + 1
+
+    for i in r_vals
+        if i > 21
+            print("Invalid index! Index: ", i)
+            return
+        end
+
+        tspan = range(0, t_stop, length = points) # [h]
+        tspan = tspan * 3600 # for conversion to [s]
+        r_val = round(0.000125 * ((i-1)/20), digits = 9)
+
+        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2)
+        plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
+        plot!(tspan, Cc3[1:points, i], label = "H2", lw = 2)
+        plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)
+        plot!(tspan, Cc5[1:points, i], label = "N2", lw = 2)
+        savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
+    end
+end
