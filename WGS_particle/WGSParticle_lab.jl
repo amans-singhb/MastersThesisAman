@@ -123,10 +123,11 @@ prob = discretize(WGS_pde, discretization)
 
 using DelimitedFiles
 
-# Generate results
+# Define T and P ranges
 temp_range = [393.0; 483.0; 573.0;]
 pres_range = [1.0; 2.0; 3.0;]
-
+ 
+# Generate results
 # make_results(temp_range[3], pres_range[3], params, prob)
 
 # for i in eachindex(temp_range)
@@ -137,6 +138,7 @@ pres_range = [1.0; 2.0; 3.0;]
 
 using Plots
 
+# Generate plots
 for i in eachindex(temp_range)
     for j in eachindex(pres_range)
         make_plots(temp_range[i], pres_range[j], [1; 10; 21], 0.001)
