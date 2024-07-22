@@ -356,7 +356,7 @@ function make_plots_diff_sphere(T_val, P_val, r_vals = [1; 11; 21], t_stop = 0.0
         tspan = tspan * 3600 # for conversion to [s]
         r_val = round(0.000125 * ((i-1)/20), digits = 9)
 
-        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2)
+        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2, legend = :right)
         plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
         plot!(tspan, Cc3[1:points, i], label = "H2", lw = 2)
         plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)

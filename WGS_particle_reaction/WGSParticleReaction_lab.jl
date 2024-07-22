@@ -1,4 +1,4 @@
-##### Catalyst particle balance for WGS reactor model #####
+##### Catalyst particle balance for WGS reactor model with reaction #####
 
 using Pkg
 Pkg.activate("WGS")
@@ -46,8 +46,8 @@ R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 # Inlet values
 F_0 = 1e-5 # [mol/h] 
-T_val = 500 # [K] [param1]
-P_val = 1.3 # [atm] [param6]
+T_val = 573 # [K] [param1]
+P_val = 3.0 # [atm] [param6]
 
 C_i_val = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
 C_c_i_init = C_i_val * 0.75
@@ -69,7 +69,7 @@ Drr = Differential(r)^2
 
 ## Variables ##
 @variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..)
-@variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..) D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r) r_1(t, r) r_2(t, r) r_3(t, r) r_4(t, r) r_5(t, r)
+@variables D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r) r_1(t, r) r_2(t, r) r_3(t, r) r_4(t, r) r_5(t, r)
 
 C_c_i = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r)]
 C_c_i_rad = [C_c_1(t, rad_cat), C_c_2(t, rad_cat), C_c_3(t, rad_cat), C_c_4(t, rad_cat), C_c_5(t, rad_cat)]
@@ -131,7 +131,7 @@ temp_range = [393.0; 483.0; 573.0;]
 pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
-# make_results(temp_range[3], pres_range[3], params, prob)
+make_results(temp_range[3], pres_range[3], params, prob)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)

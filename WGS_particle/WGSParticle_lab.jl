@@ -1,4 +1,4 @@
-##### Catalyst particle balance for WGS reactor model #####
+##### Catalyst particle balance for WGS reactor model without reaction #####
 
 using Pkg
 Pkg.activate("WGS")
