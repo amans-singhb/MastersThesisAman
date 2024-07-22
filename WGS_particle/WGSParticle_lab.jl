@@ -116,13 +116,22 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
 
-# Generate results
-# make_results(params, prob)
-
 # Solving ODE
-sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+# sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
+
+# Generate results
+temp_range = [393.0; 483.0; 573.0;]
+pres_range = [1.0; 2.0; 3.0;]
+
+make_results(temp_range[3], pres_range[3], params, prob)
+
+for i in eachindex(temp_range)
+    for j in eachindex(pres_range)
+        make_results(temp_range[i], pres_range[j], params, prob)
+    end
+end
 
 # # Plotting 
 # time = 0.01
@@ -134,12 +143,21 @@ sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 # plot(solution)
 
 using DelimitedFiles
-folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
-write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)
-write_to_csv("C_c_2_573.0K_3.0atm_lab.csv", sol[C_c_2(t, r)], folder)
-write_to_csv("C_c_3_573.0K_3.0atm_lab.csv", sol[C_c_3(t, r)], folder)
-write_to_csv("C_c_4_573.0K_3.0atm_lab.csv", sol[C_c_4(t, r)], folder)
-write_to_csv("C_c_5_573.0K_3.0atm_lab.csv", sol[C_c_5(t, r)], folder)
+# folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
+# write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)
+# write_to_csv("C_c_2_573.0K_3.0atm_lab.csv", sol[C_c_2(t, r)], folder)
+# write_to_csv("C_c_3_573.0K_3.0atm_lab.csv", sol[C_c_3(t, r)], folder)
+# write_to_csv("C_c_4_573.0K_3.0atm_lab.csv", sol[C_c_4(t, r)], folder)
+# write_to_csv("C_c_5_573.0K_3.0atm_lab.csv", sol[C_c_5(t, r)], folder)
+
+C_c_11 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_1_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+C_c_21 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_2_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+
+
+
 
 #### Particle balance for diffusion within a sphere ####
 

@@ -119,13 +119,20 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
 
-# Generate results
-make_results(params, prob)
-
 # Solving ODE
 # sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 # # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
+
+# Generate results
+temp_range = [393.0; 483.0; 573.0;]
+pres_range = [1.0; 2.0; 3.0;]
+
+for i in eachindex(temp_range)
+    for j in eachindex(pres_range)
+        make_results(temp_range[i], pres_range[j], params, prob)
+    end
+end
 
 # # Plotting 
 # time = 0.01

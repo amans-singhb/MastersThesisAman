@@ -221,42 +221,42 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
     writedlm(file_path, data, delimiter)
 end
 
-# util function to make results (change parent_folder to save results in appropriate folder)
-function make_results(params, prob, parent_folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters")
+# util function to make results (change parent_folder to save results in appropriate folder) CHECK OUT ISSUES WITH THE FUNCTION, SOME ITERATIONS TAKE TO LONG (MAYBE MAKE SINGLE USE AND HAVE LOOP IN SCRIPT?)
+function make_results(T_val, P_val, params, prob, parent_folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters")
     if !isdir(parent_folder)
         mkdir(parent_folder)
     end
 
-    temp_range = [393.0; 483.0; 573.0;]
-    pres_range = [1.0; 2.0; 3.0;]
-    # temp_range = range(393, 573, length = 10)
-    # pres_range = range(1, 3, length = 11)
+    #delete after test
+    string_param = string(T_val) * "K_" * string(P_val) * "atm"
+    print("Solving ODE for: ", string_param, "\n")
+    #
 
-    for i in eachindex(temp_range)
-        for j in eachindex(pres_range)
-            newparams = params[3:end]
+    newparams = params[3:end]
 
-            temp = [T => temp_range[i]]
-            pres = [P => pres_range[j]]
+    temp = [T => T_val]
+    pres = [P => P_val]
 
-            newparams = [temp; pres; newparams]
-            newprob = remake(prob, p = newparams)
-            newsol = solve(newprob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+    newparams = [temp; pres; newparams]
+    newprob = remake(prob, p = newparams)
+    newsol = solve(newprob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
 
-            string_param = string(temp_range[i]) * "K_" * string(pres_range[j]) * "atm"
-            folder = parent_folder * "/param" * string_param
+    string_param = string(T_val) * "K_" * string(P_val) * "atm"
+    folder = parent_folder * "/param" * string_param
 
-            string_cc1 = "C_c_1_" * string_param * "_lab.csv"
-            string_cc2 = "C_c_2_" * string_param * "_lab.csv"
-            string_cc3 = "C_c_3_" * string_param * "_lab.csv"
-            string_cc4 = "C_c_4_" * string_param * "_lab.csv"
-            string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+    #delete after test
+    print("Done solving ODE for: ", string_param, "\n")
+    #
 
-            write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
-            write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
-            write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
-            write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
-            write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
-        end
-    end    
+    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
+    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
+    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
+    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
+    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+
+    write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
+    write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
+    write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
+    write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
+    write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
 end
