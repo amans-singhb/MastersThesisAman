@@ -141,7 +141,7 @@ using Plots
 # Generate plots
 for i in eachindex(temp_range)
     for j in eachindex(pres_range)
-        make_plots(temp_range[i], pres_range[j], [1; 10; 21], 0.001)
+        make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
     end
 end
 
@@ -185,7 +185,7 @@ end
 #         sinus_term = (π * n * r) / radius
 #         sin_term = sin(sinus_term)
 #         sum_term += n/r * sin_term * exp_term
-#         print("n = ", n, ": \t" , sum_term,", ", sin_term, ", ", sinus_term, ", ", exp_term, ", ", exponent_term, "\n")
+#         # print("n = ", n, ": \t" , sum_term,", ", sin_term, ", ", sinus_term, ", ", exp_term, ", ", exponent_term, "\n")
 #     end
     
 #     c = (M_i / (2 * radius^2)) * sum_term
@@ -193,15 +193,41 @@ end
 #     return c
 # end
 
-# t_span = range(0, 0.01, length = 101)
-# r_span = range(0, rad_cat, length = 21)
+# t_span = range(0, 0.000001, length = 101)
+# r_span = range(0.000001, rad_cat, length = 21)
 
 # y_1 = C_c_i_init / sum(C_c_i_init)
 # n_1 = F_0 * y_1
-# D_1 = sol[D_1_m]
+# # D_1 = sol[D_1_m]
 
-# D_1[2,2], t_span[2], r_span[2]
+# # D_1[2,2], t_span[2], r_span[2]
 
-# c_1 = C_c_i_diff_sphere(n_1[1], rad_cat, D_1[2,2], t_span[1], r_span[2], 1)
+# # c_1 = C_c_i_diff_sphere(n_1[1], rad_cat, D_1[2,2], t_span[1], r_span[2], 1)
 
-# c_2 = C_c_i_diff_sphere(C_c_i_init[1], rad_cat, D_i_m_bulk[1], t_span[1], r_span[2], 1)
+# # c_2 = C_c_i_diff_sphere(C_c_i_init[1], rad_cat, D_i_m_bulk[1], t_span[1], r_span[2], 1)
+
+# c_3 = C_c_i_diff_sphere(n_1[1], rad_cat, D_i_m_bulk[1], t_span[2], r_span[2], 10)
+
+# cons1 = zeros(Num, 101, 21)
+# cons2 = zeros(Num, 101, 21)
+# cons3 = zeros(Num, 101, 21)
+# cons4 = zeros(Num, 101, 21)
+# cons5 = zeros(Num, 101, 21)
+
+# for i in eachindex(t_span)
+#     for j in eachindex(r_span)
+#         cons1[i, j] = C_c_i_diff_sphere(n_1[1], rad_cat, D_i_m_bulk[1], t_span[i], r_span[j], 10)
+#         cons2[i, j] = C_c_i_diff_sphere(n_1[2], rad_cat, D_i_m_bulk[2], t_span[i], r_span[j], 10)
+#         cons3[i, j] = C_c_i_diff_sphere(n_1[3], rad_cat, D_i_m_bulk[3], t_span[i], r_span[j], 10)
+#         cons4[i, j] = C_c_i_diff_sphere(n_1[4], rad_cat, D_i_m_bulk[4], t_span[i], r_span[j], 10)
+#         cons5[i, j] = C_c_i_diff_sphere(n_1[5], rad_cat, D_i_m_bulk[5], t_span[i], r_span[j], 10)
+#     end
+# end
+
+# write_to_csv("C_c_1_diff_sphere.csv", cons1, "WGS_particle/results_diff_sphere")
+# write_to_csv("C_c_2_diff_sphere.csv", cons2, "WGS_particle/results_diff_sphere")
+# write_to_csv("C_c_3_diff_sphere.csv", cons3, "WGS_particle/results_diff_sphere")
+# write_to_csv("C_c_4_diff_sphere.csv", cons4, "WGS_particle/results_diff_sphere")
+# write_to_csv("C_c_5_diff_sphere.csv", cons5, "WGS_particle/results_diff_sphere")
+
+# make_plots_diff_sphere(T_val, P_val, [1; 11; 21], 0.000001)

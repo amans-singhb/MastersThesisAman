@@ -305,7 +305,7 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder
 
         tspan = range(0, t_stop, length = points) # [h]
         tspan = tspan * 3600 # for conversion to [s]
-        r_val = round(0.000125 * (i/21), digits = 9)
+        r_val = round(0.000125 * ((i-1)/20), digits = 9)
 
         plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2)
         plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
@@ -313,6 +313,54 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder
         plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)
         plot!(tspan, Cc5[1:points, i], label = "N2", lw = 2)
         savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
+    end
+end
 
+# util function to read data from csv and plot for diffusion within sphere part (change folder to save results in appropriate folder)
+function make_plots_diff_sphere(T_val, P_val, r_vals = [1; 11; 21], t_stop = 0.000001, folder_path::String = "WGS_particle/results_diff_sphere")
+
+    figures_folder = joinpath(folder_path, "figures")
+    if !isdir(figures_folder)
+        mkdir(figures_folder)
+    end
+
+    string_cc1 = "C_c_1_diff_sphere.csv"
+    string_cc2 = "C_c_2_diff_sphere.csv"
+    string_cc3 = "C_c_3_diff_sphere.csv"
+    string_cc4 = "C_c_4_diff_sphere.csv"
+    string_cc5 = "C_c_5_diff_sphere.csv"
+
+    file_path_cc1 = joinpath(folder_path, string_cc1)
+    file_path_cc2 = joinpath(folder_path, string_cc2)
+    file_path_cc3 = joinpath(folder_path, string_cc3)
+    file_path_cc4 = joinpath(folder_path, string_cc4)
+    file_path_cc5 = joinpath(folder_path, string_cc5)
+
+    Cc1 = readdlm(file_path_cc1, ',', Float64, '\n')
+    Cc2 = readdlm(file_path_cc2, ',', Float64, '\n')
+    Cc3 = readdlm(file_path_cc3, ',', Float64, '\n')
+    Cc4 = readdlm(file_path_cc4, ',', Float64, '\n')
+    Cc5 = readdlm(file_path_cc5, ',', Float64, '\n')
+
+    points = 101
+
+    string_param = string(T_val) * "K_" * string(P_val) * "atm"
+
+    for i in r_vals
+        if i > 21
+            print("Invalid index! Index: ", i)
+            return
+        end
+
+        tspan = range(0, t_stop, length = points) # [h]
+        tspan = tspan * 3600 # for conversion to [s]
+        r_val = round(0.000125 * ((i-1)/20), digits = 9)
+
+        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2)
+        plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
+        plot!(tspan, Cc3[1:points, i], label = "H2", lw = 2)
+        plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)
+        plot!(tspan, Cc5[1:points, i], label = "N2", lw = 2)
+        savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
     end
 end
