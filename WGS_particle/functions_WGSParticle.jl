@@ -222,7 +222,7 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
 end
 
 # util function to make results (change parent_folder to save results in appropriate folder)
-function make_results(T_val, P_val, params, prob, parent_folder::String = "WGS_particle/results_particle_lab_parameters")
+function make_results(T_val, P_val, params, prob, save_val = 0.0001, a_tol = 1e-6, r_tol = 1e-6, parent_folder::String = "WGS_particle/results_particle_lab_parameters")
     if !isdir(parent_folder)
         mkdir(parent_folder)
     end
@@ -239,7 +239,7 @@ function make_results(T_val, P_val, params, prob, parent_folder::String = "WGS_p
 
     newparams = [temp; pres; newparams]
     newprob = remake(prob, p = newparams)
-    newsol = solve(newprob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+    newsol = solve(newprob, KenCarp47(), saveat = save_val, abstol = a_tol, reltol = r_tol)
 
     string_param = string(T_val) * "K_" * string(P_val) * "atm"
     folder = parent_folder * "/param" * string_param
@@ -264,7 +264,7 @@ end
 using Plots
 
 # util function to read data from csv and plot (change folder to save results in appropriate folder)
-function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder::String = "WGS_particle/figures_particle_lab_parameters",  folder::String = "WGS_particle/results_particle_lab_parameters/param")
+function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.0001, t_tot = 0.001, fig_folder::String = "WGS_particle/figures_particle_lab_parameters",  folder::String = "WGS_particle/results_particle_lab_parameters/param")
     if !isdir(fig_folder)
         mkdir(fig_folder)
     end
@@ -295,7 +295,7 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder
     Cc4 = readdlm(file_path_cc4, ',', Float64, '\n')
     Cc5 = readdlm(file_path_cc5, ',', Float64, '\n')
 
-    points = Int((t_stop/0.001) * 100) + 1
+    points = Int(round((t_stop/t_tot) * 100, RoundNearest)) + 1
 
     for i in r_vals
         if i > 21
@@ -315,6 +315,8 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.01, fig_folder
         savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
     end
 end
+
+#### Functions for particle balance for diffusion within a sphere ####
 
 # util function to read data from csv and plot for diffusion within sphere part (change folder to save results in appropriate folder)
 function make_plots_diff_sphere(T_val, P_val, r_vals = [1; 11; 21], t_stop = 0.000001, folder_path::String = "WGS_particle/results_diff_sphere")

@@ -100,7 +100,7 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
 # Domain (time is in [h])
-domains = [t ∈ Interval(0.0, 0.01),
+domains = [t ∈ Interval(0.0, 0.001),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
@@ -120,9 +120,9 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 prob = discretize(WGS_pde, discretization)
 
 # Solving ODE
-# sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, KenCarp47(), saveat = 0.00001, abstol = 1e-6, reltol = 1e-6)
 # # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
-# sols = sol[C_c_1(t, r)]
+sols = sol[C_c_1(t, r)]
 
 using DelimitedFiles
 
@@ -131,7 +131,7 @@ temp_range = [393.0; 483.0; 573.0;]
 pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
-make_results(temp_range[3], pres_range[3], params, prob)
+make_results(500.0, 1.3, params, prob, 0.000001, 1e-9, 1e-9)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)
@@ -142,11 +142,13 @@ make_results(temp_range[3], pres_range[3], params, prob)
 using Plots
 
 # Generate plots
-for i in eachindex(temp_range)
-    for j in eachindex(pres_range)
-        make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
-    end
-end
+make_plots(500.0, 1.3, [1; 11; 21], 0.00001, 0.000001)
+
+# for i in eachindex(temp_range)
+#     for j in eachindex(pres_range)
+#         make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
+#     end
+# end
 
 # # Plotting 
 # time = 0.01
