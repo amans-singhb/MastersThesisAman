@@ -121,15 +121,25 @@ prob = discretize(WGS_pde, discretization)
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
 
+using DelimitedFiles
+
 # Generate results
 temp_range = [393.0; 483.0; 573.0;]
 pres_range = [1.0; 2.0; 3.0;]
 
-make_results(temp_range[3], pres_range[3], params, prob)
+# make_results(temp_range[3], pres_range[3], params, prob)
+
+# for i in eachindex(temp_range)
+#     for j in eachindex(pres_range)
+#         make_results(temp_range[i], pres_range[j], params, prob)
+#     end
+# end
+
+using Plots
 
 for i in eachindex(temp_range)
     for j in eachindex(pres_range)
-        make_results(temp_range[i], pres_range[j], params, prob)
+        make_plots(temp_range[i], pres_range[j], [1; 10; 21], 0.001)
     end
 end
 
@@ -142,7 +152,6 @@ end
 
 # plot(solution)
 
-using DelimitedFiles
 # folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
 # write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)
 # write_to_csv("C_c_2_573.0K_3.0atm_lab.csv", sol[C_c_2(t, r)], folder)
@@ -150,11 +159,11 @@ using DelimitedFiles
 # write_to_csv("C_c_4_573.0K_3.0atm_lab.csv", sol[C_c_4(t, r)], folder)
 # write_to_csv("C_c_5_573.0K_3.0atm_lab.csv", sol[C_c_5(t, r)], folder)
 
-C_c_11 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_1_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-C_c_21 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_2_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+# C_c_11 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_1_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+# C_c_21 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_2_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+# C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+# C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+# C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
 
 
 
