@@ -304,10 +304,10 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.0001, t_tot = 
         end
 
         tspan = range(0, t_stop, length = points) # [h]
-        tspan = tspan * 3600 # for conversion to [s]
+        tspan = tspan * 3600 * 1000 # for conversion to [ms]
         r_val = round(0.000125 * ((i-1)/20), digits = 9)
 
-        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [s]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2, legend = :right)
+        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [ms]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2, legend = :right)
         plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
         plot!(tspan, Cc3[1:points, i], label = "H2", lw = 2)
         plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)

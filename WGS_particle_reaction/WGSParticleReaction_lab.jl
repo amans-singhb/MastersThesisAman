@@ -46,8 +46,8 @@ R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 # Inlet values
 F_0 = 1e-5 # [mol/h] 
-T_val = 573 # [K] [param1]
-P_val = 3.0 # [atm] [param6]
+T_val = 500.1 # [K] [param1]
+P_val = 1.3 # [atm] [param6]
 
 C_i_val = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
 C_c_i_init = C_i_val * 0.75
@@ -131,7 +131,7 @@ temp_range = [393.0; 483.0; 573.0;]
 pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
-make_results(500.0, 1.3, params, prob, 0.000001, 1e-9, 1e-9)
+make_results(500.1, 1.3, params, prob, 1e-8, 1e-12, 1e-12)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)
@@ -142,7 +142,7 @@ make_results(500.0, 1.3, params, prob, 0.000001, 1e-9, 1e-9)
 using Plots
 
 # Generate plots
-make_plots(500.0, 1.3, [1; 11; 21], 0.00001, 0.000001)
+make_plots(500.1, 1.3, [1; 11; 21], 1e-8, 1e-8)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)
