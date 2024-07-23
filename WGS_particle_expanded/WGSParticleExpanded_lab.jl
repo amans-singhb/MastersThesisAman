@@ -82,15 +82,15 @@ r_i = [r_1, r_2, r_3, r_4, r_5]
 ## Equations and Differential Equations ##
 
 # Differential of function D_i_m
-Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T_c, P))
+Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T_c(t, r), P))
 expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
 
 using ModelingToolkit: scalarize
 
 # WGSParticle
-eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T_c, P))...]
-eqs_ri = [scalarize(r_i .~ r_i_func(C_c_i, d_cat, θ, P, T_c))...]
+eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T_c(t, r), P))...]
+eqs_ri = [scalarize(r_i .~ r_i_func(C_c_i, d_cat, θ, P, T_c(t, r)))...]
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
 
 # WGSParticleExpanded

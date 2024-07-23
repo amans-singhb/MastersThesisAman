@@ -2,7 +2,7 @@
 
 using Pkg
 Pkg.activate("WGS")
-include("functions_WGS.jl")
+# include("functions_WGS.jl")
 
 ### Test functions ###
 
