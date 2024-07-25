@@ -390,6 +390,8 @@ function h_f_func(T, C_i, D_cat, D_rct, F)
     return h_f_2
 end
 
+## Util functions ##
+
 using DelimitedFiles
 
 # util function to write data to csv

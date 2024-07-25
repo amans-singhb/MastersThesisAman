@@ -210,6 +210,8 @@ function k_c_i_func(T, P, R, C_i, D_i_m, D_cat, D_rct, F)
     return k_c_i_2
 end
 
+## Util functions ##
+
 using DelimitedFiles
 
 # util function to write data to csv
