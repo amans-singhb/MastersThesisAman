@@ -92,13 +92,12 @@ H_c_i = [H_c_1, H_c_2, H_c_3, H_c_4, H_c_5]
 Dr_D_im = Dr.(D_i_m_func(C_c_i, θ, τ, T_c(t, r), P))
 expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
-# Intermediate variables
-Hidr =[C_p_c_i[i] * Dr(T_c(t, r)) for i in 1:5]
-Ni = [D_i_m[i] * Dr(C_c_i[i]) for i in 1:5]
-Nidr = [expand_Dr_D_im[i] * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) for i in 1:5]
-
-
 using ModelingToolkit: scalarize
+
+# Intermediate variables
+Hidr = [scalarize(C_p_c_i * Dr(T_c(t, r)))...]
+Ni = [scalarize(D_i_m .* Dr.(C_c_i))...]
+Nidr = [scalarize(expand_Dr_D_im .* Dr.(C_c_i) + D_i_m .* Drr.(C_c_i))...]
 
 # WGSParticle
 eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T_c(t, r), P))...]
@@ -106,16 +105,17 @@ eqs_ri = [scalarize(r_i .~ r_i_func(C_c_i, d_cat, θ, P, T_c(t, r)))...]
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) + r_i[i] for i in 1:5]
 
 # WGSParticleExpanded
-eqs_Hci = [H_c_i[i] ~ H_i_func(T_c(t, r)) for i in 1:5]
+eqs_Hci = [scalarize(H_c_i .~ H_i_func(T_c(t, r)))...]
+eqs_Cpci = [scalarize(C_p_c_i .~ C_p_i_func(T_c(t, r)))...]
 eqs_Cpcat = [C_p_cat ~ C_p_cat_func(T_c(t, r))]
-STEP_DE5_1 = [C_p_c_i[i] * C_c_i[i] for i in 1:5]
-STEP_DE5_2 = [Dt(C_c_i[i]) * H_c_i[i] for i in 1:5]
-STEP_DE5_3 = [H_c_i[i] * Ni[i] for i in 1:5]
-STEP_DE5_4 = [H_c_i[i] * Nidr[i] for i in 1:5]
-STEP_DE5_5 = [Ni[i] * Hidr[i] for i in 1:5]
-STEP_DE5_6 = [H_c_i[i] * r_i[i] for i in 1:5]
-DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, r)) + θ * (sum(STEP_DE5_1) * Dt(T_c(t, r)) + sum(STEP_DE5_2)) ~ (((λ_cat) / r) * Dr(T_c(t, r)) + λ_cat * Drr(T_c(t, r))) + θ * ( (2 / r) * sum(STEP_DE5_3) + sum(STEP_DE5_4) + sum(STEP_DE5_5) - sum(STEP_DE5_6))]
-eqs = [eqs_Dim...; eqs_ri...; DE4...; eqs_Hci...; eqs_Cpcat; DE5]
+STEP_DE5_1 = sum([C_p_c_i[i] * C_c_i[i] for i in 1:5])
+STEP_DE5_2 = sum([Dt(C_c_i[i]) * H_c_i[i] for i in 1:5])
+STEP_DE5_3 = sum([H_c_i[i] * Ni[i] for i in 1:5])
+STEP_DE5_4 = sum([H_c_i[i] * Nidr[i] for i in 1:5])
+STEP_DE5_5 = sum([Ni[i] * Hidr[i] for i in 1:5])
+STEP_DE5_6 = sum([H_c_i[i] * r_i[i] for i in 1:5])
+DE5 = [(1 - θ) * ρ_cat * C_p_cat * Dt(T_c(t, r)) + θ * (STEP_DE5_1 * Dt(T_c(t, r)) + STEP_DE5_2) ~ (((λ_cat) / r) * Dr(T_c(t, r)) + λ_cat * Drr(T_c(t, r))) + θ * ( (2 / r) * STEP_DE5_3 + STEP_DE5_4 + STEP_DE5_5 - STEP_DE5_6)]
+eqs = [eqs_Dim...; eqs_ri...; DE4...; eqs_Hci...; eqs_Cpci...; eqs_Cpcat; DE5]
 
 # WGSParticle
 ICS_C_c_i = [C_c_1(0.0, r) ~ C_c_i_init[1], C_c_2(0.0, r) ~ C_c_i_init[2], C_c_3(0.0, r) ~ C_c_i_init[3], C_c_4(0.0, r) ~ C_c_i_init[4], C_c_5(0.0, r) ~ C_c_i_init[5]]
@@ -124,10 +124,10 @@ BCS3 = [k_c_i[i] * (C_c_i_rad[i] - C_i[i]) ~ (-1) * D_i_m[i] * Dr(C_c_i_rad[i]) 
 
 # WGSParticleExpanded
 ICS_T_c = [T_c(0.0, r) ~ T_val]
-BCS_Tc = [Dr(T_c(t, 0)) ~ 0]
-STEP_BCS4_1 = [H_i[i] * k_c_i[i] * (C_c_i_rad[i] - C_i[i]) for i in 1:5]
-STEP_BCS4_2 = [H_c_i[i] * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5]
-BCS4 = [hf * (T_c(t, rad_cat) - T) + sum(STEP_BCS4_1) ~ (-λ_cat) * Dr(T_c(t, rad_cat)) - sum(STEP_BCS4_2)]
+BCS_Tc = [Dr(T_c(t, 0.0)) ~ 0.0]
+STEP_BCS4_1 = sum([H_i[i] * k_c_i[i] * (C_c_i_rad[i] - C_i[i]) for i in 1:5])
+STEP_BCS4_2 = sum([H_c_i[i] * D_i_m[i] * Dr(C_c_i_rad[i]) for i in 1:5])
+BCS4 = [hf * (T_c(t, rad_cat) - T) + STEP_BCS4_1 ~ (-λ_cat) * Dr(T_c(t, rad_cat)) - STEP_BCS4_2]
 
 bcs = [ICS_C_c_i...; BCS2...; BCS3...; ICS_T_c; BCS_Tc; BCS4]
 
@@ -155,6 +155,8 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 
 # Converting PDE to ODE with MOL
 prob = discretize(WGS_pde, discretization)
+
+WGS_pde.ivs
 
 # Solving ODE
 t0 = time()
