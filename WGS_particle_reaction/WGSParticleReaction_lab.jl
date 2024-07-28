@@ -181,6 +181,7 @@ C_1_ml = C_i_ml[1] # concentration of CO [mol/m^3]
 T_ml = 503 # [K]
 ratio_CO_H20 = 2.3
 
+# Training parameters
 p0 = [T_ml; ratio_CO_H20 * C_1_ml;]
 p0_low = 0.9 * p0
 p0_high = 1.1 * p0
@@ -188,7 +189,7 @@ p0_high = 1.1 * p0
 # Number of observations
 n_obs = 2
 
-# training matrix
+# Training matrix
 p_train = (p0_low .+ (p0_high .- p0_low) .* rand(length(p0), n_obs))'
 
 params_ml = params[2:end-2]
@@ -196,7 +197,7 @@ params_vec_C_i = [C_i[i] => C_i_ml[i] for i in 1:5]
 
 parent_folder = "WGS_particle_reaction/ml_data"
 
-# generating training data
+# Generating training data
 for i in 1:n_obs
     newparams_ml = params_ml
     newparams_ml = [T => p_train[i, 1]; params_ml...; C_i[4] => p_train[i, 2]; C_i[5] => C_i_ml[5];]
