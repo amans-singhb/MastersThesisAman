@@ -196,6 +196,7 @@ params_vec_C_i = [C_i[i] => C_i_ml[i] for i in 1:5]
 
 parent_folder = "WGS_particle_reaction/ml_data"
 
+# generating training data
 for i in 1:n_obs
     newparams_ml = params_ml
     newparams_ml = [T => p_train[i, 1]; params_ml...; C_i[4] => p_train[i, 2]; C_i[5] => C_i_ml[5];]
