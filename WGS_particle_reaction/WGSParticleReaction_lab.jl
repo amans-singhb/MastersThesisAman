@@ -60,7 +60,7 @@ using ModelingToolkit
 
 ## Parameters ##
 @parameters t r T R θ τ d_cat P
-@parameters C_i[1:5] k_c_i[1:5]
+@parameters k_c_i[1:5] C_i[1:5]
 
 ## Differential ##
 Dt = Differential(t)
@@ -100,15 +100,15 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
 # Domain (time is in [h])
-domains = [t ∈ Interval(0.0, 0.001),
+domains = [t ∈ Interval(0.0, 0.00015),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
 vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m, r_1, r_2, r_3, r_4, r_5]
 params_scal = [T => T_val, P => P_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val]
-params_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
 params_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
-params = [params_scal...; params_vec_C_i...; params_vec_k_c_i...;]
+params_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
+params = [params_scal...; params_vec_k_c_i...; params_vec_C_i...;]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, params)
 
 # Discretization
@@ -120,18 +120,18 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 prob = discretize(WGS_pde, discretization)
 
 # Solving ODE
-sol = solve(prob, KenCarp47(), saveat = 0.00001, abstol = 1e-6, reltol = 1e-6)
+# sol = solve(prob, KenCarp47(), saveat = 0.000001, abstol = 1e-6, reltol = 1e-6)
 # # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
-sols = sol[C_c_1(t, r)]
+# sols = sol[C_c_1(t, r)]
 
 using DelimitedFiles
 
 # Define T and P ranges
-temp_range = [393.0; 483.0; 573.0;]
-pres_range = [1.0; 2.0; 3.0;]
+# temp_range = [393.0; 483.0; 573.0;]
+# pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
-make_results(500.1, 1.3, params, prob, 1e-8, 1e-12, 1e-12)
+# make_results(500.1, 1.3, params, prob, 1e-8, 1e-12, 1e-12)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)
@@ -142,7 +142,7 @@ make_results(500.1, 1.3, params, prob, 1e-8, 1e-12, 1e-12)
 using Plots
 
 # Generate plots
-make_plots(500.1, 1.3, [1; 11; 21], 1e-8, 1e-8)
+# make_plots(500.1, 1.3, [1; 11; 21], 1e-8, 1e-8)
 
 # for i in eachindex(temp_range)
 #     for j in eachindex(pres_range)
@@ -166,3 +166,54 @@ make_plots(500.1, 1.3, [1; 11; 21], 1e-8, 1e-8)
 # write_to_csv("C_c_3_lab.csv", sol[C_c_3(t, r)], folder)
 # write_to_csv("C_c_4_lab.csv", sol[C_c_4(t, r)], folder)
 # write_to_csv("C_c_5_lab.csv", sol[C_c_5(t, r)], folder)
+
+
+## Generate data for CTESN ##
+
+# Parameters
+y_p = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
+C_total = sum(C_i_val)
+V = F_0/C_total
+
+C_i_ml = (F_0 * y_p) / V # [mol/m^3]
+
+C_1_ml = C_i_ml[1] # concentration of CO [mol/m^3]
+T_ml = 503 # [K]
+ratio_CO_H20 = 2.3
+
+p0 = [T_ml; ratio_CO_H20 * C_1_ml;]
+p0_low = 0.9 * p0
+p0_high = 1.1 * p0
+
+# Number of observations
+n_obs = 2
+
+# training matrix
+p_train = (p0_low .+ (p0_high .- p0_low) .* rand(length(p0), n_obs))'
+
+params_ml = params[2:end-2]
+params_vec_C_i = [C_i[i] => C_i_ml[i] for i in 1:5]
+
+parent_folder = "WGS_particle_reaction/ml_data"
+
+for i in 1:n_obs
+    newparams_ml = params_ml
+    newparams_ml = [T => p_train[i, 1]; params_ml...; C_i[4] => p_train[i, 2]; C_i[5] => C_i_ml[5];]
+    newprob = remake(prob, p = newparams_ml)
+    newsol = solve(newprob, KenCarp47(), saveat = 0.000001, abstol = 1e-6, reltol = 1e-6)
+
+    string_param = string(p_train[i, 1]) * "K_" * string(p_train[i, 1]) * "molm3"
+    folder = parent_folder * "/" * string_param
+
+    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
+    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
+    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
+    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
+    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+
+    write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
+    write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
+    write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
+    write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
+    write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
+end
