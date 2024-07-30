@@ -49,7 +49,13 @@ F_0 = 1e-5 # [mol/h]
 T_val = 573.0 # [K] [param1]
 P_val = 3.0 # [atm] [param6]
 
-C_i_val = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
+C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
+
+y_0 = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
+C_total = sum(C_i_old)
+V = F_0/C_total
+
+C_i_val = (F_0 * y_0) / V
 C_c_i_init = C_i_val * 0.75
 
 # Mass transfer coefficients (bulk phase)
@@ -97,7 +103,7 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
 # Domain (time is in [h])
-domains = [t ∈ Interval(0.0, 0.01),
+domains = [t ∈ Interval(0.0, 1e-2),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
@@ -117,9 +123,10 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 prob = discretize(WGS_pde, discretization)
 
 # Solving ODE
-# sol = solve(prob, KenCarp47(), saveat = 0.0001, abstol = 1e-6, reltol = 1e-6)
+# sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
+# sol_t = sol.t * 3600
 
 using DelimitedFiles
 
@@ -130,20 +137,20 @@ pres_range = [1.0; 2.0; 3.0;]
 # Generate results
 # make_results(temp_range[3], pres_range[3], params, prob)
 
-# for i in eachindex(temp_range)
-#     for j in eachindex(pres_range)
-#         make_results(temp_range[i], pres_range[j], params, prob)
-#     end
-# end
-
-using Plots
-
-# Generate plots
 for i in eachindex(temp_range)
     for j in eachindex(pres_range)
-        make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
+        make_results(temp_range[i], pres_range[j], params, prob)
     end
 end
+
+# using Plots
+
+# Generate plots
+# for i in eachindex(temp_range)
+#     for j in eachindex(pres_range)
+#         make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
+#     end
+# end
 
 # # Plotting 
 # time = 0.01
@@ -152,7 +159,7 @@ end
 
 # using Plots
 
-# plot(solution)
+# plot(sol_t, solution)
 
 # folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
 # write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)

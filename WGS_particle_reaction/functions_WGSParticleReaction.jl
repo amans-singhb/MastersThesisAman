@@ -224,15 +224,15 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
 end
 
 # util function to make results (change parent_folder to save results in appropriate folder) CHECK OUT ISSUES WITH THE FUNCTION, SOME ITERATIONS TAKE TO LONG (MAYBE MAKE SINGLE USE AND HAVE LOOP IN SCRIPT?)
-function make_results(T_val, P_val, params, prob, save_val = 0.0001, a_tol = 1e-6, r_tol = 1e-6, parent_folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters")
+function make_results(T_val, P_val, params, prob, a_tol = 1e-6, r_tol = 1e-6, parent_folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters")
     if !isdir(parent_folder)
         mkdir(parent_folder)
     end
 
-    #delete after test
-    string_param = string(T_val) * "K_" * string(P_val) * "atm"
-    print("Solving ODE for: ", string_param, "\n")
-    #
+    # #delete after test
+    # string_param = string(T_val) * "K_" * string(P_val) * "atm"
+    # print("Solving ODE for: ", string_param, "\n")
+    # #
 
     newparams = params[3:end]
 
@@ -241,26 +241,28 @@ function make_results(T_val, P_val, params, prob, save_val = 0.0001, a_tol = 1e-
 
     newparams = [temp; pres; newparams]
     newprob = remake(prob, p = newparams)
-    newsol = solve(newprob, KenCarp47(), saveat = save_val, abstol = a_tol, reltol = r_tol)
+    newsol = solve(newprob, KenCarp47(), abstol = a_tol, reltol = r_tol)
 
     string_param = string(T_val) * "K_" * string(P_val) * "atm"
     folder = parent_folder * "/param" * string_param
 
-    #delete after test
-    print("Done solving ODE for: ", string_param, "\n")
-    #
+    # #delete after test
+    # print("Done solving ODE for: ", string_param, "\n")
+    # #
 
     string_cc1 = "C_c_1_" * string_param * "_lab.csv"
     string_cc2 = "C_c_2_" * string_param * "_lab.csv"
     string_cc3 = "C_c_3_" * string_param * "_lab.csv"
     string_cc4 = "C_c_4_" * string_param * "_lab.csv"
     string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+    string_time = "time_" * string_param * "_lab.csv"
 
     write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
     write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
     write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
     write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
     write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
+    write_to_csv(string_time, newsol.t, folder)
 end
 
 using Plots
