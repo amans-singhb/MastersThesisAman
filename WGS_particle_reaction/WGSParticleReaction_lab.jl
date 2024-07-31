@@ -46,7 +46,7 @@ R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 # Inlet values
 F_0 = 1e-5 # [mol/h] 
-T_val = 500.1 # [K] [param1]
+T_val = 503.0 # [K] [param1]
 P_val = 1.3 # [atm] [param6]
 
 C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
@@ -216,6 +216,9 @@ params_ml = params[2:end-5]
 params_vec_C_i_ml = [C_i[i] => C_i_ml[i] for i in 1:3]
 params_ml = [params_ml...; params_vec_C_i_ml...]
 
+using JLD2
+
+folder_path_jld2 = "WGS_particle_reaction/ml_data_jld2"
 parent_folder = "WGS_particle_reaction/ml_data"
 write_to_csv("p_train.csv", p_train, parent_folder)
 
@@ -242,4 +245,7 @@ for i in 1:n_obs
     write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
     write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
     write_to_csv(string_time, newsol.t, folder)
+
+    # saving to JLD2
+    save(folder_path_jld2 * "/sol_$i.jld2", "sol", newsol)
 end
