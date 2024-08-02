@@ -126,7 +126,7 @@ discretization = MOLFiniteDifference([r => dr], t, order=order)
 prob = discretize(WGS_pde, discretization)
 
 # Solving ODE
-# sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
 # # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols1 = sol[C_c_1(t, r)]
 # sols2 = sol[C_c_2(t, r)]
@@ -135,20 +135,20 @@ prob = discretize(WGS_pde, discretization)
 # sols5 = sol[C_c_5(t, r)]
 # sol_t = sol.t * 3600
 
-using DelimitedFiles
+# using DelimitedFiles
 
 # Define T and P ranges
-temp_range = [393.0; 483.0; 573.0;]
-pres_range = [1.0; 2.0; 3.0;]
+# temp_range = [393.0; 483.0; 573.0;]
+# pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
 # make_results(500.1, 1.3, params, prob)
 
-for i in eachindex(temp_range)
-    for j in eachindex(pres_range)
-        make_results(temp_range[i], pres_range[j], params, prob)
-    end
-end
+# for i in eachindex(temp_range)
+#     for j in eachindex(pres_range)
+#         make_results(temp_range[i], pres_range[j], params, prob)
+#     end
+# end
 
 # using Plots
 
@@ -188,64 +188,64 @@ end
 # write_to_csv("C_c_5_lab.csv", sol[C_c_5(t, r)], folder)
 
 
-## Generate data for CTESN ##
+# ## Generate data for CTESN ##
 
-# Parameters
-y_p = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
-C_total = sum(C_i_old)
-V = F_0/C_total
+# # Parameters
+# y_p = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
+# C_total = sum(C_i_old)
+# V = F_0/C_total
 
-C_i_ml = (F_0 * y_p) / V # [mol/m^3]
+# C_i_ml = (F_0 * y_p) / V # [mol/m^3]
 
-C_1_ml = C_i_ml[1] # concentration of CO [mol/m^3]
-T_ml = 503 # [K]
-ratio_CO_H20 = 2.3
+# C_1_ml = C_i_ml[1] # concentration of CO [mol/m^3]
+# T_ml = 503 # [K]
+# ratio_CO_H20 = 2.3
 
-# Training parameters
-p0 = [T_ml; ratio_CO_H20 * C_1_ml;]
-p0_low = 0.9 * p0
-p0_high = 1.1 * p0
+# # Training parameters
+# p0 = [T_ml; ratio_CO_H20 * C_1_ml;]
+# p0_low = 0.9 * p0
+# p0_high = 1.1 * p0
 
-# Number of observations
-n_obs = 100
+# # Number of observations
+# n_obs = 100
 
-# Training matrix
-p_train = (p0_low .+ (p0_high .- p0_low) .* rand(length(p0), n_obs))'
+# # Training matrix
+# p_train = (p0_low .+ (p0_high .- p0_low) .* rand(length(p0), n_obs))'
 
-params_ml = params[2:end-5]
-params_vec_C_i_ml = [C_i[i] => C_i_ml[i] for i in 1:3]
-params_ml = [params_ml...; params_vec_C_i_ml...]
+# params_ml = params[2:end-5]
+# params_vec_C_i_ml = [C_i[i] => C_i_ml[i] for i in 1:3]
+# params_ml = [params_ml...; params_vec_C_i_ml...]
 
-using JLD2
+# using JLD2
 
-folder_path_jld2 = "WGS_particle_reaction/ml_data_jld2"
-parent_folder = "WGS_particle_reaction/ml_data"
-write_to_csv("p_train.csv", p_train, parent_folder)
+# folder_path_jld2 = "WGS_particle_reaction/ml_data_jld2"
+# parent_folder = "WGS_particle_reaction/ml_data"
+# write_to_csv("p_train.csv", p_train, parent_folder)
 
-# Generating training data
-for i in 1:n_obs
-    newparams_ml = params_ml
-    newparams_ml = [T => p_train[i, 1]; params_ml...; C_i[4] => p_train[i, 2]; C_i[5] => C_i_ml[5];]
-    newprob = remake(prob, p = newparams_ml)
-    newsol = solve(newprob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+# # Generating training data
+# for i in 1:n_obs
+#     newparams_ml = params_ml
+#     newparams_ml = [T => p_train[i, 1]; params_ml...; C_i[4] => p_train[i, 2]; C_i[5] => C_i_ml[5];]
+#     newprob = remake(prob, p = newparams_ml)
+#     newsol = solve(newprob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
 
-    string_param = string(p_train[i, 1]) * "K_" * string(p_train[i, 1]) * "molm3"
-    folder = parent_folder * "/ml_" * string_param
+#     string_param = string(p_train[i, 1]) * "K_" * string(p_train[i, 1]) * "molm3"
+#     folder = parent_folder * "/ml_" * string_param
 
-    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
-    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
-    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
-    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
-    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
-    string_time = "time_" * string_param * "_lab.csv"
+#     string_cc1 = "C_c_1_" * string_param * "_lab.csv"
+#     string_cc2 = "C_c_2_" * string_param * "_lab.csv"
+#     string_cc3 = "C_c_3_" * string_param * "_lab.csv"
+#     string_cc4 = "C_c_4_" * string_param * "_lab.csv"
+#     string_cc5 = "C_c_5_" * string_param * "_lab.csv"
+#     string_time = "time_" * string_param * "_lab.csv"
 
-    write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
-    write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
-    write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
-    write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
-    write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
-    write_to_csv(string_time, newsol.t, folder)
+#     write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
+#     write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
+#     write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
+#     write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
+#     write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
+#     write_to_csv(string_time, newsol.t, folder)
 
-    # saving to JLD2
-    save(folder_path_jld2 * "/sol_$i.jld2", "sol", newsol)
-end
+#     # saving to JLD2
+#     save(folder_path_jld2 * "/sol_$i.jld2", "sol", newsol)
+# end
