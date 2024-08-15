@@ -3,7 +3,6 @@
 using Pkg
 Pkg.activate("WGS")
 include("functions_WGSParticleReaction.jl")
-include("functions_CTESN.jl")
 
 ### Defining naming conventions, numeration and units ###
 
