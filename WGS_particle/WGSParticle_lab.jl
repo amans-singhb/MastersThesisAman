@@ -46,8 +46,8 @@ R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
 # Inlet values
 F_0 = 1e-5 # [mol/h] 
-T_val = 573.0 # [K] [param1]
-P_val = 3.0 # [atm] [param6]
+T_val = 503.0 # [K] [param1]
+P_val = 1.3 # [atm] [param6]
 
 C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
 
@@ -56,7 +56,9 @@ C_total = sum(C_i_old)
 V = F_0/C_total
 
 C_i_val = (F_0 * y_0) / V
-C_c_i_init = C_i_val * 0.75
+
+zero_val = 1e-15 # isapprox(0, 1e-324) = true
+C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
 
 # Mass transfer coefficients (bulk phase)
 D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_val, P_val) # [m^2/h]
@@ -75,8 +77,10 @@ Drr = Differential(r)^2
 
 ## Variables ##
 @variables C_c_1(..) C_c_2(..) C_c_3(..) C_c_4(..) C_c_5(..)
+# dCc_1(..) dCc_2(..) dCc_3(..) dCc_4(..) dCC_5(..)
 @variables D_1_m(t, r) D_2_m(t, r) D_3_m(t, r) D_4_m(t, r) D_5_m(t, r)
 
+# dCc_i = [dCc_1(t, r), dCc_2(t, r), dCc_3(t, r), dCc_4(t, r), dCC_5(t, r)]
 C_c_i = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r)]
 C_c_i_rad = [C_c_1(t, rad_cat), C_c_2(t, rad_cat), C_c_3(t, rad_cat), C_c_4(t, rad_cat), C_c_5(t, rad_cat)]
 D_i_m = [D_1_m, D_2_m, D_3_m, D_4_m, D_5_m]
@@ -89,6 +93,7 @@ expand_Dr_D_im = expand_derivatives.(Dr_D_im)
 
 using ModelingToolkit: scalarize
 
+# eqs_deriv = [dCc_i[i] ~ Dt(C_c_i[i]) for i in 1:5]
 eqs_Dim = [scalarize(D_i_m .~ D_i_m_func(C_c_i, θ, τ, T, P))...]
 DE4 = [Dt(C_c_i[i]) ~ (((2 * D_i_m[i]) / r) + expand_Dr_D_im[i]) * Dr(C_c_i[i]) + D_i_m[i] * Drr(C_c_i[i]) for i in 1:5]
 
@@ -107,12 +112,12 @@ domains = [t ∈ Interval(0.0, 1e-2),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
-vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m]
-params_scal = [T => T_val, P => P_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val]
-params_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
-params_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
-params = [params_scal...; params_vec_C_i...; params_vec_k_c_i...;]
-@named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, params)
+vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m] # dCc_1(t, r), dCc_2(t, r), dCc_3(t, r), dCc_4(t, r), dCC_5(t, r)]
+prms_scal = [T => T_val, P => P_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val]
+prms_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
+prms_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
+prms = [prms_scal...; prms_vec_C_i...; prms_vec_k_c_i...;]
+@named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, prms)
 
 # Discretization
 dr = rad_cat/20
@@ -120,28 +125,70 @@ order = 2
 discretization = MOLFiniteDifference([r => dr], t, order=order)
 
 # Converting PDE to ODE with MOL
+# t0_disc = time()
 prob = discretize(WGS_pde, discretization)
+# t1_disc = time() - t0_disc
+# println("Discretization time: ", t1_disc)
 
-# Solving ODE
-# sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+using BenchmarkTools
+
+t0_solve = time()
+sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
+t1_solve = time() - t0_solve
+println("Solving time: ", t1_solve)
+
+# # @btime
+# @btime sol = solve(prob, FBDF(), abstol = 1e-6, reltol = 1e-6)
+# @btime sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+# @btime sol = solve(prob, QNDF(), abstol = 1e-6, reltol = 1e-6)
+# @btime sol = solve(prob, RadauIIA5(), abstol = 1e-6, reltol = 1e-6)
+# @btime sol = solve(prob, Rodas5P(), abstol = 1e-6, reltol = 1e-6)
+
+# @btime sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
+
+# # @benchmark
+# @benchmark sol = solve(prob, FBDF(), abstol = 1e-6, reltol = 1e-6)
+# @benchmark sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+# @benchmark sol = solve(prob, QNDF(), abstol = 1e-6, reltol = 1e-6)
+# @benchmark sol = solve(prob, RadauIIA5(), abstol = 1e-6, reltol = 1e-6)
+# @benchmark sol = solve(prob, Rodas5P(), abstol = 1e-6, reltol = 1e-6)
+
+# @benchmark sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
+
+
+#--------------------------------------------------------------------------------------------------------------#
+
 # sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
 # sols = sol[C_c_1(t, r)]
 # sol_t = sol.t * 3600
 
-using DelimitedFiles
+# sols1 = sol[C_c_1(t, r)][:, 21]
+# sols2 = sol[C_c_2(t, r)][:, 21]
+# sols3 = sol[C_c_3(t, r)][:, 21]
+# sols4 = sol[C_c_4(t, r)][:, 21]
+# sols5 = sol[C_c_5(t, r)][:, 21]
+# sol_t = sol.t * 3600
 
-# Define T and P ranges
-temp_range = [393.0; 483.0; 573.0;]
-pres_range = [1.0; 2.0; 3.0;]
+# plot(sol_t, sols1, label = "CO")
+# plot!(sol_t, sols2, label = "CO2")
+# plot!(sol_t, sols3, label = "H2")
+# plot!(sol_t, sols4, label = "H2O")
+# plot!(sol_t, sols5, label = "N2")
+
+# using DelimitedFiles
+
+# Define T and P rangues
+# temp_range = [393.0; 483.0; 573.0;]
+# pres_range = [1.0; 2.0; 3.0;]
  
 # Generate results
-# make_results(temp_range[3], pres_range[3], params, prob)
+# make_results(temp_range[3], pres_range[3], prms, prob)
 
-for i in eachindex(temp_range)
-    for j in eachindex(pres_range)
-        make_results(temp_range[i], pres_range[j], params, prob)
-    end
-end
+# for i in eachindex(temp_range)
+#     for j in eachindex(pres_range)
+#         make_results(temp_range[i], pres_range[j], prms, prob)
+#     end
+# end
 
 # using Plots
 
@@ -173,68 +220,3 @@ end
 # C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
 # C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
 # C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-
-
-
-
-#### Particle balance for diffusion within a sphere ####
-
-### Listing some assumptions made for this part of the code ###
-# 1. constant diffusivity
-# 2. no Reaction
-# 3. constant temperature and pressure
-
-# function C_c_i_diff_sphere(M_i, radius, D_i, t, r, N)
-#     sum_term = 0
-#     for n in 1:N
-#         exponent_term = (- n^2 * π^2 * D_i * t) / radius^2
-#         exp_term = exp(exponent_term)
-#         sinus_term = (π * n * r) / radius
-#         sin_term = sin(sinus_term)
-#         sum_term += n/r * sin_term * exp_term
-#         # print("n = ", n, ": \t" , sum_term,", ", sin_term, ", ", sinus_term, ", ", exp_term, ", ", exponent_term, "\n")
-#     end
-    
-#     c = (M_i / (2 * radius^2)) * sum_term
-    
-#     return c
-# end
-
-# t_span = range(0, 0.000001, length = 101)
-# r_span = range(0.000001, rad_cat, length = 21)
-
-# y_1 = C_c_i_init / sum(C_c_i_init)
-# n_1 = F_0 * y_1
-# # D_1 = sol[D_1_m]
-
-# # D_1[2,2], t_span[2], r_span[2]
-
-# # c_1 = C_c_i_diff_sphere(n_1[1], rad_cat, D_1[2,2], t_span[1], r_span[2], 1)
-
-# # c_2 = C_c_i_diff_sphere(C_c_i_init[1], rad_cat, D_i_m_bulk[1], t_span[1], r_span[2], 1)
-
-# c_3 = C_c_i_diff_sphere(n_1[1], rad_cat, D_i_m_bulk[1], t_span[2], r_span[2], 10)
-
-# cons1 = zeros(Num, 101, 21)
-# cons2 = zeros(Num, 101, 21)
-# cons3 = zeros(Num, 101, 21)
-# cons4 = zeros(Num, 101, 21)
-# cons5 = zeros(Num, 101, 21)
-
-# for i in eachindex(t_span)
-#     for j in eachindex(r_span)
-#         cons1[i, j] = C_c_i_diff_sphere(n_1[1], rad_cat, D_i_m_bulk[1], t_span[i], r_span[j], 10)
-#         cons2[i, j] = C_c_i_diff_sphere(n_1[2], rad_cat, D_i_m_bulk[2], t_span[i], r_span[j], 10)
-#         cons3[i, j] = C_c_i_diff_sphere(n_1[3], rad_cat, D_i_m_bulk[3], t_span[i], r_span[j], 10)
-#         cons4[i, j] = C_c_i_diff_sphere(n_1[4], rad_cat, D_i_m_bulk[4], t_span[i], r_span[j], 10)
-#         cons5[i, j] = C_c_i_diff_sphere(n_1[5], rad_cat, D_i_m_bulk[5], t_span[i], r_span[j], 10)
-#     end
-# end
-
-# write_to_csv("C_c_1_diff_sphere.csv", cons1, "WGS_particle/results_diff_sphere")
-# write_to_csv("C_c_2_diff_sphere.csv", cons2, "WGS_particle/results_diff_sphere")
-# write_to_csv("C_c_3_diff_sphere.csv", cons3, "WGS_particle/results_diff_sphere")
-# write_to_csv("C_c_4_diff_sphere.csv", cons4, "WGS_particle/results_diff_sphere")
-# write_to_csv("C_c_5_diff_sphere.csv", cons5, "WGS_particle/results_diff_sphere")
-
-# make_plots_diff_sphere(T_val, P_val, [1; 11; 21], 0.000001)

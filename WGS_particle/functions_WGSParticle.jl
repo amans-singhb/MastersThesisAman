@@ -370,3 +370,17 @@ function make_plots_diff_sphere(T_val, P_val, r_vals = [1; 11; 21], t_stop = 0.0
         savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
     end
 end
+
+# Function for extracting data from solutions
+function extractData(sol; t_length = length(sol.t), r_length = 21, modelPDESize = 5, idx = [7, 3, 2, 8, 5])
+    data = [zeros(Float64, t_length, modelPDESize) for _ in 1:r_length]
+    t_range = sol.t
+    r_range = range(0.0, 0.125e-3, length=r_length)
+    # i for radial position, j for time
+    for i in 1:r_length
+        for j in 1:t_length
+            data[i][j,:] = sol(t_range[j], r_range[i])[idx]
+        end
+    end
+    return data
+end

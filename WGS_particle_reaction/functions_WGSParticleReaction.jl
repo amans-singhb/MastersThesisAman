@@ -267,7 +267,7 @@ end
 
 using Plots
 
-# util function to read data from csv and plot (change folder to save results in appropriate folder)
+# util function to read data from csv and plot (change folder to save results in appropriate folder) (SOMEWHAT OUTDATED, NEEDS TO BE UPDATED)
 function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.0001, t_tot = 0.001, fig_folder::String = "WGS_particle_reaction/figures_particle_reaction_lab_parameters",  folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters/param")
     if !isdir(fig_folder)
         mkdir(fig_folder)
@@ -318,4 +318,18 @@ function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.0001, t_tot = 
         plot!(tspan, Cc5[1:points, i], label = "N2", lw = 2)
         savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
     end
+end
+
+# Function for extracting data from solutions
+function extractData(sol; t_length = length(sol.t), r_length = 21, modelPDESize = 5, idx = [10, 4, 3, 11, 6])
+    data = [zeros(Float64, t_length, modelPDESize) for _ in 1:r_length]
+    t_range = sol.t
+    r_range = range(0.0, 0.125e-3, length=r_length)
+    # i for radial position, j for time
+    for i in 1:r_length
+        for j in 1:t_length
+            data[i][j,:] = sol(t_range[j], r_range[i])[idx]
+        end
+    end
+    return data
 end
