@@ -126,10 +126,8 @@ domains = [t ∈ Interval(0.0, 2e-5),
 # System
 vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m, r_1, r_2, r_3, r_4, r_5]
 prms_scal = [T => T_val, P => P_val, F => F_val]
-# prms_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
 prms_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
 prms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_val[i] for i in 1:5]
-# prms = [prms_scal...; prms_vec_k_c_i...; prms_vec_C_i...;]
 prms = [prms_scal...; prms_vec_C_i...; prms_vec_C_c_i_init...]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, prms)
 
