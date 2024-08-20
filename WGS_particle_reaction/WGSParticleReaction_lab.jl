@@ -29,49 +29,54 @@ include("functions_WGSParticleReaction.jl")
 
 ### PDE system ###
 
-## Parameters
+## Constant parameters
 
 # Dimensions
-D_rct_val = 12.7e-3 # [m] 
+D_rct = 12.7e-3 # [m] 
 rad_cat = 0.125e-3 # [m]
-D_cat_val = rad_cat * 2 # [m]
+D_cat = rad_cat * 2 # [m]
 
 # Catalyst properties
-d_cat_val = 5904 # [kg/m^3] [param5]
+d_cat = 5904 # [kg/m^3]
 
 # Coefficients
-θ_val = 0.55 #[-] [param3]
-τ_val = 5 #[-] [param4]
-R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
+θ = 0.55 #[-]
+τ = 5 #[-]
+R = 8.2057e-2 # [m3 atm/kmol K]
+
+## Parameters
 
 # Inlet values
-F_0 = 1e-5 # [mol/h] 
+F_val= 1e-5 # [mol/h] [param3]
 T_val = 503.0 # [K] [param1]
-P_val = 1.3 # [atm] [param6]
+P_val = 1.3 # [atm] [param2]
 
+# Temp vals ------------------------------------------------------------------------------------------------------------ #
 C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
-
 y_0 = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
 C_total = sum(C_i_old)
-V = F_0/C_total
+V = F_val/C_total
+C_i_val_temp = (F_val * y_0) / V # [mol/m^3]
+# ---------------------------------------------------------------------------------------------------------------------- #
 
-C_i_val_temp = (F_0 * y_0) / V # [mol/m^3]
 C_i_val = [C_i_val_temp[1], C_i_val_temp[2], C_i_val_temp[3], 2.3 * C_i_val_temp[1], C_i_val_temp[5]] # [mol/m^3]
 
-C_c_i_init = C_i_val
+# postdiff:
+C_c_i_init_val = C_i_val
+
+# # prediff:
 # zero_val = 1e-15 # isapprox(0, 1e-324) = true
 # C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
-
-
-# Mass transfer coefficients (bulk phase)
-D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_val, P_val) # [m^2/h]
-k_c_i_val = k_c_i_func(T_val, P_val, R_atmm3, C_i_val, D_i_m_bulk, D_cat_val, D_rct_val, F_0)
 
 using ModelingToolkit
 
 ## Parameters ##
-@parameters t r T R θ τ d_cat P
-@parameters k_c_i[1:5] C_i[1:5]
+@parameters t r T P F
+@parameters C_i[1:5] C_c_i_init[1:5]
+
+# Mass transfer coefficients (bulk phase)
+D_i_m_bulk = D_i_m_func(C_i, θ, τ, T, P) # [m^2/h]
+k_c_i = k_c_i_func(T, P, R, C_i, D_i_m_bulk, D_cat, D_rct, F)
 
 ## Differential ##
 Dt = Differential(t)
@@ -120,10 +125,12 @@ domains = [t ∈ Interval(0.0, 2e-5),
 
 # System
 vars = [C_c_1(t, r), C_c_2(t, r), C_c_3(t, r), C_c_4(t, r), C_c_5(t, r), D_1_m, D_2_m, D_3_m, D_4_m, D_5_m, r_1, r_2, r_3, r_4, r_5]
-prms_scal = [T => T_val, P => P_val, R => R_atmm3, θ => θ_val, τ => τ_val, d_cat => d_cat_val]
-prms_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
+prms_scal = [T => T_val, P => P_val, F => F_val]
+# prms_vec_k_c_i = [k_c_i[i] => k_c_i_val[i] for i in 1:5]
 prms_vec_C_i = [C_i[i] => C_i_val[i] for i in 1:5]
-prms = [prms_scal...; prms_vec_k_c_i...; prms_vec_C_i...;]
+prms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_val[i] for i in 1:5]
+# prms = [prms_scal...; prms_vec_k_c_i...; prms_vec_C_i...;]
+prms = [prms_scal...; prms_vec_C_i...; prms_vec_C_c_i_init...]
 @named WGS_pde = PDESystem(eqs, bcs, domains, [t, r], vars, prms)
 
 # Discretization
@@ -143,7 +150,62 @@ sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
 t1_sol = time() - t0_sol
 print("\nSolution time: ", t1_sol, "\n")
 
+using Plots
 
+sols1 = sol[C_c_1(t, r)][:, 21]
+sols2 = sol[C_c_2(t, r)][:, 21]
+sols3 = sol[C_c_3(t, r)][:, 21]
+sols4 = sol[C_c_4(t, r)][:, 21]
+sols5 = sol[C_c_5(t, r)][:, 21]
+sol_t = sol.t * 3600
+
+plot(sol_t, sols1, label = "CO")
+plot!(sol_t, sols2, label = "CO2")
+plot!(sol_t, sols3, label = "H2")
+plot!(sol_t, sols4, label = "H2O")
+plot!(sol_t, sols5, label = "N2")
+savefig("WGS_particle_reaction/sol_postdiff.png")
+
+# New parameters ---------------------------------------------------------------------------------------------------------------------------- #
+C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
+zero_val = 1e-15 # isapprox(0, 1e-324) = true
+C_c_i_init_new = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
+
+newprms_scal = [T => 483, P => 2, F => 2e-5]
+newprms_vec_C_i = [C_i[i] => C_i_old[i] for i in 1:5]
+newprms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_new[i] for i in 1:5]
+newprms = [newprms_scal...; newprms_vec_C_i...; newprms_vec_C_c_i_init...]
+
+domains_new = [t ∈ Interval(0.0, 3e-3),
+    r ∈ Interval(0.0, rad_cat)]
+
+@named WGS_pde_new = PDESystem(eqs, bcs, domains_new, [t, r], vars, newprms)
+discretization_new = MOLFiniteDifference([r => dr], t, order=order)
+
+t0_disc_new = time()
+newprob = discretize(WGS_pde_new, discretization_new)
+t1_disc_new = time() - t0_disc_new
+print("\nDiscretization time: ", t1_disc_new, "\n")
+
+t0_sol_new = time()
+newsol = solve(newprob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
+t1_sol_new = time() - t0_sol_new
+print("\nSolution time: ", t1_sol_new, "\n")
+
+newsols1 = newsol[C_c_1(t, r)][:, 21]
+newsols2 = newsol[C_c_2(t, r)][:, 21]
+newsols3 = newsol[C_c_3(t, r)][:, 21]
+newsols4 = newsol[C_c_4(t, r)][:, 21]
+newsols5 = newsol[C_c_5(t, r)][:, 21]
+newsol_t = newsol.t * 3600
+
+plot(newsol_t, newsols1, label = "CO")
+plot!(newsol_t, newsols2, label = "CO2")
+plot!(newsol_t, newsols3, label = "H2")
+plot!(newsol_t, newsols4, label = "H2O")
+plot!(newsol_t, newsols5, label = "N2")
+savefig("WGS_particle_reaction/sol_prediff.png")
+# ------------------------------------------------------------------------------------------------------------------------------------------- #
 
 # # Solving ODE
 # t0_sol = time()
@@ -277,9 +339,9 @@ print("\nSolution time: ", t1_sol, "\n")
 # # Parameters
 # y_p = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
 # C_total = sum(C_i_old)
-# V = F_0/C_total
+# V = F_val/C_total
 
-# C_i_ml = (F_0 * y_p) / V # [mol/m^3]
+# C_i_ml = (F_val * y_p) / V # [mol/m^3]
 
 # # C_1_ml = C_i_ml[1] # concentration of CO [mol/m^3]
 # # T_ml = 503 # [K]
