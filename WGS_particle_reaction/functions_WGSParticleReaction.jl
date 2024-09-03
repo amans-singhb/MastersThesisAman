@@ -223,103 +223,6 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
     writedlm(file_path, data, delimiter)
 end
 
-# util function to make results (change parent_folder to save results in appropriate folder) CHECK OUT ISSUES WITH THE FUNCTION, SOME ITERATIONS TAKE TO LONG (MAYBE MAKE SINGLE USE AND HAVE LOOP IN SCRIPT?)
-function make_results(T_val, P_val, params, prob, a_tol = 1e-6, r_tol = 1e-6, parent_folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters")
-    if !isdir(parent_folder)
-        mkdir(parent_folder)
-    end
-
-    # #delete after test
-    # string_param = string(T_val) * "K_" * string(P_val) * "atm"
-    # print("Solving ODE for: ", string_param, "\n")
-    # #
-
-    newparams = params[3:end]
-
-    temp = [T => T_val]
-    pres = [P => P_val]
-
-    newparams = [temp; pres; newparams]
-    newprob = remake(prob, p = newparams)
-    newsol = solve(newprob, KenCarp47(), abstol = a_tol, reltol = r_tol)
-
-    string_param = string(T_val) * "K_" * string(P_val) * "atm"
-    folder = parent_folder * "/param" * string_param
-
-    # #delete after test
-    # print("Done solving ODE for: ", string_param, "\n")
-    # #
-
-    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
-    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
-    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
-    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
-    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
-    string_time = "time_" * string_param * "_lab.csv"
-
-    write_to_csv(string_cc1, newsol[C_c_1(t, r)], folder)
-    write_to_csv(string_cc2, newsol[C_c_2(t, r)], folder)
-    write_to_csv(string_cc3, newsol[C_c_3(t, r)], folder)
-    write_to_csv(string_cc4, newsol[C_c_4(t, r)], folder)
-    write_to_csv(string_cc5, newsol[C_c_5(t, r)], folder)
-    write_to_csv(string_time, newsol.t, folder)
-end
-
-using Plots
-
-# util function to read data from csv and plot (change folder to save results in appropriate folder) (SOMEWHAT OUTDATED, NEEDS TO BE UPDATED)
-function make_plots(T_val, P_val, r_vals::Vector{Int}, t_stop = 0.0001, t_tot = 0.001, fig_folder::String = "WGS_particle_reaction/figures_particle_reaction_lab_parameters",  folder::String = "WGS_particle_reaction/results_particle_reaction_lab_parameters/param")
-    if !isdir(fig_folder)
-        mkdir(fig_folder)
-    end
-    
-    string_param = string(T_val) * "K_" * string(P_val) * "atm"
-    folder_path = folder * string_param * "/"
-
-    figures_folder = fig_folder * "/param" * string_param
-    if !isdir(figures_folder)
-        mkdir(figures_folder)
-    end
-    
-    string_cc1 = "C_c_1_" * string_param * "_lab.csv"
-    string_cc2 = "C_c_2_" * string_param * "_lab.csv"
-    string_cc3 = "C_c_3_" * string_param * "_lab.csv"
-    string_cc4 = "C_c_4_" * string_param * "_lab.csv"
-    string_cc5 = "C_c_5_" * string_param * "_lab.csv"
-
-    file_path_cc1 = joinpath(folder_path, string_cc1)
-    file_path_cc2 = joinpath(folder_path, string_cc2)
-    file_path_cc3 = joinpath(folder_path, string_cc3)
-    file_path_cc4 = joinpath(folder_path, string_cc4)
-    file_path_cc5 = joinpath(folder_path, string_cc5)
-
-    Cc1 = readdlm(file_path_cc1, ',', Float64, '\n')
-    Cc2 = readdlm(file_path_cc2, ',', Float64, '\n')
-    Cc3 = readdlm(file_path_cc3, ',', Float64, '\n')
-    Cc4 = readdlm(file_path_cc4, ',', Float64, '\n')
-    Cc5 = readdlm(file_path_cc5, ',', Float64, '\n')
-
-    points = Int(round((t_stop/t_tot) * 100, RoundNearest)) + 1
-
-    for i in r_vals
-        if i > 21
-            print("Invalid index! Index: ", i)
-            return
-        end
-
-        tspan = range(0, t_stop, length = points) # [h]
-        tspan = tspan * 3600 * 1000 # for conversion to [ms]
-        r_val = round(0.000125 * ((i-1)/20), digits = 9)
-
-        plot(tspan, Cc1[1:points, i], label = "CO", xlabel = "Time [ms]", ylabel = "Concentration [mol/m^3]", title = "Concentration of species in the catalyst particle", lw = 2, legend = :right)
-        plot!(tspan, Cc2[1:points, i], label = "CO2", lw = 2)
-        plot!(tspan, Cc3[1:points, i], label = "H2", lw = 2)
-        plot!(tspan, Cc4[1:points, i], label = "H2O", lw = 2)
-        plot!(tspan, Cc5[1:points, i], label = "N2", lw = 2)
-        savefig(joinpath(figures_folder, "Concentration_at_" * string(r_val) * "m_" * string_param * "_lab.png"))
-    end
-end
-
 # Function for extracting data from solutions
 function extractData(sol; t_length = length(sol.t), r_length = 21, modelPDESize = 5, idx = [10, 4, 3, 11, 6])
     data = [zeros(Float64, t_length, modelPDESize) for _ in 1:r_length]
@@ -332,4 +235,32 @@ function extractData(sol; t_length = length(sol.t), r_length = 21, modelPDESize 
         end
     end
     return data
+end
+
+# function for numerical differentiation of solutions (forward, backward and central difference)
+function finite_diff_sol(sol)
+    sol_cci = [sol[C_c_1(t, r)], sol[C_c_2(t, r)], sol[C_c_3(t, r)], sol[C_c_4(t, r)], sol[C_c_5(t, r)]]
+    sol_time = sol.t
+
+    num_time = length(sol_time)
+    num_comp = length(sol_cci)
+    size_sol = size(sol_cci[1])
+
+    Δcci_t = [zeros(size_sol) for _ in 1:num_comp]
+    err = [zeros(num_time) for _ in 1:num_comp]
+
+    for i in 1:num_comp
+        Δcci_t[i][1, :] = (sol_cci[i][2, :] - sol_cci[i][1, :]) / (sol_time[2] - sol_time[1])
+        err[i][1] = sol_time[2] - sol_time[1]
+
+        for j in 2:(num_time-1)
+            Δcci_t[i][j, :] = (sol_cci[i][j+1, :] - sol_cci[i][j-1, :]) / (sol_time[j+1] - sol_time[j-1])
+            err[i][j] = (sol_time[j+1] - sol_time[j-1])^2
+        end
+
+        Δcci_t[i][end, :] = (sol_cci[i][end, :] - sol_cci[i][end-1, :]) / (sol_time[end] - sol_time[end-1])
+        err[i][end] = sol_time[end] - sol_time[end-1]
+    end
+
+    return Δcci_t, err
 end
