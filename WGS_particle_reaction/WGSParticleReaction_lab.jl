@@ -369,11 +369,10 @@ display(plot_cc5_err)
 using Surrogates
 #           T  y_CO y_CO2  y_H2  y_H2O  y_N2 
 p_upper = [593.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-p_lower = [393.0, 10e-15, 10e-15, 10e-15, 10e-15, 10e-15]
+p_lower = [393.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]
 nsample = 2000
 
 samples_LHS_og = sample(nsample, p_lower, p_upper, LatinHypercubeSample())
-# samples_LHS_og = sample(nsample, p_lower, p_upper, SobolSample())
 samples_LHS = hcat(map(x -> collect(x), samples_LHS_og)...)
 samples_LHS = samples_LHS'
 
@@ -384,6 +383,7 @@ for i in 1:nsample
         println("Error in sample $i")
     end
 end
+samples_LHS
 
 # Converting molcefractions to concentrations based on new temperature
 for i in 1:nsample
