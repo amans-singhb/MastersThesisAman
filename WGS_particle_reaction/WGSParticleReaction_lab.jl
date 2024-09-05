@@ -141,7 +141,7 @@ using OrdinaryDiffEq, DomainSets, MethodOfLines
 #     r ∈ Interval(0.0, rad_cat)]
 
 # Domain prediff (time is in [h])
-domains = [t ∈ Interval(0.0, 3e-3),
+domains = [t ∈ Interval(0.0, 5e-4),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
@@ -165,7 +165,7 @@ print("\nDiscretization time: ", t1_disc, "\n")
 
 # Solving ODE
 t0_sol = time()
-sol = solve(prob, FBDF(), saveat = 1e-7 ,abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, FBDF(), abstol = 1e-6, reltol = 1e-6)
 t1_sol = time() - t0_sol
 print("\nSolution time: ", t1_sol, "\n")
 
@@ -185,227 +185,377 @@ plot!(sol_t, sols4, label = "H2O")
 plot!(sol_t, sols5, label = "N2")
 # savefig("WGS_particle_reaction/sol_postdiff2.png")
 
-# New parameters ---------------------------------------------------------------------------------------------------------------------------- #
-C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
+# New parameters test ---------------------------------------------------------------------------------------------------------------------- #
+# C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
 
-# postdiff
-C_c_i_init_new = C_i_old
+# # postdiff
+# C_c_i_init_new = C_i_old
 
-# # prediff
-# zero_val = 1e-15 # isapprox(0, 1e-324) = true
-# C_c_i_init_new = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
+# # # prediff
+# # zero_val = 1e-15 # isapprox(0, 1e-324) = true
+# # C_c_i_init_new = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
 
-newprms_scal = [T => 483, P => 2, F => 2e-5]
-newprms_vec_C_i = [C_i[i] => C_i_old[i] for i in 1:5]
-newprms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_new[i] for i in 1:5]
-newprms = [newprms_scal...; newprms_vec_C_i...; newprms_vec_C_c_i_init...]
+# newprms_scal = [T => 483, P => 2, F => 2e-5]
+# newprms_vec_C_i = [C_i[i] => C_i_old[i] for i in 1:5]
+# newprms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_new[i] for i in 1:5]
+# newprms = [newprms_scal...; newprms_vec_C_i...; newprms_vec_C_c_i_init...]
 
-# # Domain postdiff (time is in [h])
-# domains_new = [t ∈ Interval(0.0, 2e-5),
+# # # Domain postdiff (time is in [h])
+# # domains_new = [t ∈ Interval(0.0, 2e-5),
+# #     r ∈ Interval(0.0, rad_cat)]
+
+# # Domain prediff (time is in [h])
+# domains_new = [t ∈ Interval(0.0, 5e-3),
 #     r ∈ Interval(0.0, rad_cat)]
 
-# Domain prediff (time is in [h])
-domains_new = [t ∈ Interval(0.0, 3e-3),
-    r ∈ Interval(0.0, rad_cat)]
+# @named WGS_pde_new = PDESystem(eqs, bcs, domains_new, [t, r], vars, newprms)
+# discretization_new = MOLFiniteDifference([r => dr], t, order=order)
 
-@named WGS_pde_new = PDESystem(eqs, bcs, domains_new, [t, r], vars, newprms)
-discretization_new = MOLFiniteDifference([r => dr], t, order=order)
+# t0_disc_new = time()
+# newprob = discretize(WGS_pde_new, discretization_new)
+# t1_disc_new = time() - t0_disc_new
+# print("\nDiscretization time: ", t1_disc_new, "\n")
 
-t0_disc_new = time()
-newprob = discretize(WGS_pde_new, discretization_new)
-t1_disc_new = time() - t0_disc_new
-print("\nDiscretization time: ", t1_disc_new, "\n")
+# t0_sol_new = time()
+# newsol = solve(newprob, KenCarp47(), saveat = 1e-7 , abstol = 1e-6, reltol = 1e-6)
+# t1_sol_new = time() - t0_sol_new
+# print("\nSolution time: ", t1_sol_new, "\n")
 
-t0_sol_new = time()
-newsol = solve(newprob, KenCarp47(), saveat = 1e-7 , abstol = 1e-6, reltol = 1e-6)
-t1_sol_new = time() - t0_sol_new
-print("\nSolution time: ", t1_sol_new, "\n")
+# newsols1 = newsol[C_c_1(t, r)][:, 21]
+# newsols2 = newsol[C_c_2(t, r)][:, 21]
+# newsols3 = newsol[C_c_3(t, r)][:, 21]
+# newsols4 = newsol[C_c_4(t, r)][:, 21]
+# newsols5 = newsol[C_c_5(t, r)][:, 21]
+# newsol_t = newsol.t * 3600
 
-newsols1 = newsol[C_c_1(t, r)][:, 21]
-newsols2 = newsol[C_c_2(t, r)][:, 21]
-newsols3 = newsol[C_c_3(t, r)][:, 21]
-newsols4 = newsol[C_c_4(t, r)][:, 21]
-newsols5 = newsol[C_c_5(t, r)][:, 21]
-newsol_t = newsol.t * 3600
-
-plot(newsol_t, newsols1, label = "CO")
-plot!(newsol_t, newsols2, label = "CO2")
-plot!(newsol_t, newsols3, label = "H2")
-plot!(newsol_t, newsols4, label = "H2O")
-plot!(newsol_t, newsols5, label = "N2")
-# savefig("WGS_particle_reaction/sol_prediff2.png")
+# plot(newsol_t, newsols1, label = "CO")
+# plot!(newsol_t, newsols2, label = "CO2")
+# plot!(newsol_t, newsols3, label = "H2")
+# plot!(newsol_t, newsols4, label = "H2O")
+# plot!(newsol_t, newsols5, label = "N2")
+# # savefig("WGS_particle_reaction/sol_prediff2.png")
 
 # Numerical differentiation ---------------------------------------------------------------------------------------------------------------- #
 
-dCCidt, error_m  = finite_diff_sol(sol)
+# dCCidt, error_m  = finite_diff_sol(sol)
 
-plot(sol.t, error_m[1], label = "error_CO")
+# plot(sol.t, error_m[1], label = "error_CO")
 
-r_idx = 1
-plot(sol.t, dCCidt[1][:, r_idx], label = "dCC_CO_dt")
-plot!(sol.t, dCCidt[2][:, r_idx], label = "dCC_CO2_dt")
-plot!(sol.t, dCCidt[3][:, r_idx], label = "dCC_H2_dt")
-plot!(sol.t, dCCidt[4][:, r_idx], label = "dCC_H2O_dt")
-plot!(sol.t, dCCidt[5][:, r_idx], label = "dCC_N2_dt")
+# r_idx = 1
+# plot(sol.t, dCCidt[1][:, r_idx], label = "dCC_CO_dt")
+# plot!(sol.t, dCCidt[2][:, r_idx], label = "dCC_CO2_dt")
+# plot!(sol.t, dCCidt[3][:, r_idx], label = "dCC_H2_dt")
+# plot!(sol.t, dCCidt[4][:, r_idx], label = "dCC_H2O_dt")
+# plot!(sol.t, dCCidt[5][:, r_idx], label = "dCC_N2_dt")
 
-plot(sol.t, dCCidt[1][:, 1], label = "dCC_CO_dt1")
-plot!(sol.t, dCCidt[1][:, 21], label = "dCC_CO_dt21")
+# plot(sol.t, dCCidt[1][:, 1], label = "dCC_CO_dt1")
+# plot!(sol.t, dCCidt[1][:, 21], label = "dCC_CO_dt21")
 
-plot(sol.t, dCCidt[2][:, 1], label = "dCC_CO2_dt1")
-plot!(sol.t, dCCidt[2][:, 21], label = "dCC_CO2_dt21")
+# plot(sol.t, dCCidt[2][:, 1], label = "dCC_CO2_dt1")
+# plot!(sol.t, dCCidt[2][:, 21], label = "dCC_CO2_dt21")
 
-plot(sol.t, dCCidt[3][:, 1], label = "dCC_H2_dt1")
-plot!(sol.t, dCCidt[3][:, 21], label = "dCC_H2_dt21")
+# plot(sol.t, dCCidt[3][:, 1], label = "dCC_H2_dt1")
+# plot!(sol.t, dCCidt[3][:, 21], label = "dCC_H2_dt21")
 
-plot(sol.t, dCCidt[4][:, 1], label = "dCC_H2O_dt1")
-plot!(sol.t, dCCidt[4][:, 21], label = "dCC_H2O_dt21")
+# plot(sol.t, dCCidt[4][:, 1], label = "dCC_H2O_dt1")
+# plot!(sol.t, dCCidt[4][:, 21], label = "dCC_H2O_dt21")
 
-plot(sol.t, dCCidt[5][:, 1], label = "dCC_N2_dt1")
-plot!(sol.t, dCCidt[5][:, 21], label = "dCC_N2_dt21")
+# plot(sol.t, dCCidt[5][:, 1], label = "dCC_N2_dt1")
+# plot!(sol.t, dCCidt[5][:, 21], label = "dCC_N2_dt21")
 
 # Numerical integration -------------------------------------------------------------------------------------------------------------------- #
 
-dCC1dt = dCCidt[1]
-sol_cc1 = sol[C_c_1(t, r)]
+# dCC1dt = dCCidt[1]
+# sol_cc1 = sol[C_c_1(t, r)]
 
-dCC2dt = dCCidt[2]
-sol_cc2 = sol[C_c_2(t, r)]
+# dCC2dt = dCCidt[2]
+# sol_cc2 = sol[C_c_2(t, r)]
 
-dCC3dt = dCCidt[3]
-sol_cc3 = sol[C_c_3(t, r)]
+# dCC3dt = dCCidt[3]
+# sol_cc3 = sol[C_c_3(t, r)]
 
-dCC4dt = dCCidt[4]
-sol_cc4 = sol[C_c_4(t, r)]
+# dCC4dt = dCCidt[4]
+# sol_cc4 = sol[C_c_4(t, r)]
 
-dCC5dt = dCCidt[5]
-sol_cc5 = sol[C_c_5(t, r)]
+# dCC5dt = dCCidt[5]
+# sol_cc5 = sol[C_c_5(t, r)]
 
-# Implicit Euler
-dt = 1e-7
-time_len = 0.0:dt:3e-3
+# # Implicit Euler
+# dt = 1e-7
+# time_len = 0.0:dt:3e-3
 
-CC1 = zeros(size(sol_cc1))
-CC2 = zeros(size(sol_cc2))
-CC3 = zeros(size(sol_cc3))
-CC4 = zeros(size(sol_cc4))
-CC5 = zeros(size(sol_cc5))
+# CC1 = zeros(size(sol_cc1))
+# CC2 = zeros(size(sol_cc2))
+# CC3 = zeros(size(sol_cc3))
+# CC4 = zeros(size(sol_cc4))
+# CC5 = zeros(size(sol_cc5))
 
-CC1[1,:] = [C_c_i_init_val[1] for i in 1:21]
-CC2[1,:] = [C_c_i_init_val[2] for i in 1:21]
-CC3[1,:] = [C_c_i_init_val[3] for i in 1:21]
-CC4[1,:] = [C_c_i_init_val[4] for i in 1:21]
-CC5[1,:] = [C_c_i_init_val[5] for i in 1:21]
+# CC1[1,:] = [C_c_i_init_val[1] for i in 1:21]
+# CC2[1,:] = [C_c_i_init_val[2] for i in 1:21]
+# CC3[1,:] = [C_c_i_init_val[3] for i in 1:21]
+# CC4[1,:] = [C_c_i_init_val[4] for i in 1:21]
+# CC5[1,:] = [C_c_i_init_val[5] for i in 1:21]
 
 
-for i in 2:length(time_len)
-    CC1[i, :] = CC1[i-1, :] + dt .* dCC1dt[i, :]
-    CC2[i, :] = CC2[i-1, :] + dt .* dCC2dt[i, :]
-    CC3[i, :] = CC3[i-1, :] + dt .* dCC3dt[i, :]
-    CC4[i, :] = CC4[i-1, :] + dt .* dCC4dt[i, :]
-    CC5[i, :] = CC5[i-1, :] + dt .* dCC5dt[i, :]
-end
+# for i in 2:length(time_len)
+#     CC1[i, :] = CC1[i-1, :] + dt .* dCC1dt[i, :]
+#     CC2[i, :] = CC2[i-1, :] + dt .* dCC2dt[i, :]
+#     CC3[i, :] = CC3[i-1, :] + dt .* dCC3dt[i, :]
+#     CC4[i, :] = CC4[i-1, :] + dt .* dCC4dt[i, :]
+#     CC5[i, :] = CC5[i-1, :] + dt .* dCC5dt[i, :]
+# end
 
-r_index = 20
+# r_index = 20
 
-plot(time_len, CC1[:, r_index], label = "CO (implicit Euler), r = $r_index")
-plot!(sol.t, sol_cc1[:, r_index], label = "CO (true), r = $r_index")
+# plot(time_len, CC1[:, r_index], label = "CO (implicit Euler), r = $r_index")
+# plot!(sol.t, sol_cc1[:, r_index], label = "CO (true), r = $r_index")
 
-plot(time_len, CC2[:, r_index], label = "CO2 (implicit Euler), r = $r_index")
-plot!(sol.t, sol_cc2[:, r_index], label = "CO2 (true), r = $r_index")
+# plot(time_len, CC2[:, r_index], label = "CO2 (implicit Euler), r = $r_index")
+# plot!(sol.t, sol_cc2[:, r_index], label = "CO2 (true), r = $r_index")
 
-plot(time_len, CC3[:, r_index], label = "H2 (implicit Euler), r = $r_index")
-plot!(sol.t, sol_cc3[:, r_index], label = "H2 (true), r = $r_index")
+# plot(time_len, CC3[:, r_index], label = "H2 (implicit Euler), r = $r_index")
+# plot!(sol.t, sol_cc3[:, r_index], label = "H2 (true), r = $r_index")
 
-plot(time_len, CC4[:, r_index], label = "H2O (implicit Euler), r = $r_index")
-plot!(sol.t, sol_cc4[:, r_index], label = "H2O (true), r = $r_index")
+# plot(time_len, CC4[:, r_index], label = "H2O (implicit Euler), r = $r_index")
+# plot!(sol.t, sol_cc4[:, r_index], label = "H2O (true), r = $r_index")
 
-plot(time_len, CC5[:, r_index], label = "N2 (implicit Euler), r = $r_index")
-plot!(sol.t, sol_cc5[:, r_index], label = "N2 (true), r = $r_index")
+# plot(time_len, CC5[:, r_index], label = "N2 (implicit Euler), r = $r_index")
+# plot!(sol.t, sol_cc5[:, r_index], label = "N2 (true), r = $r_index")
 
-# Error calculation
-error_cc1 = abs.(CC1 - sol_cc1)
-error_cc2 = abs.(CC2 - sol_cc2)
-error_cc3 = abs.(CC3 - sol_cc3)
-error_cc4 = abs.(CC4 - sol_cc4)
-error_cc5 = abs.(CC5 - sol_cc5)
+# # Error calculation
+# error_cc1 = abs.(CC1 - sol_cc1)
+# error_cc2 = abs.(CC2 - sol_cc2)
+# error_cc3 = abs.(CC3 - sol_cc3)
+# error_cc4 = abs.(CC4 - sol_cc4)
+# error_cc5 = abs.(CC5 - sol_cc5)
 
-plot(time_len, error_cc1[:, r_index], label = "error CO (implicit Euler), r = $r_index")
-plot!(time_len, error_cc2[:, r_index], label = "error CO2 (implicit Euler), r = $r_index")
-plot!(time_len, error_cc3[:, r_index], label = "error H2 (implicit Euler), r = $r_index")
-plot!(time_len, error_cc4[:, r_index], label = "error H2O (implicit Euler), r = $r_index")
-plot!(time_len, error_cc5[:, r_index], label = "error N2 (implicit Euler), r = $r_index")
+# plot(time_len, error_cc1[:, r_index], label = "error CO (implicit Euler), r = $r_index")
+# plot!(time_len, error_cc2[:, r_index], label = "error CO2 (implicit Euler), r = $r_index")
+# plot!(time_len, error_cc3[:, r_index], label = "error H2 (implicit Euler), r = $r_index")
+# plot!(time_len, error_cc4[:, r_index], label = "error H2O (implicit Euler), r = $r_index")
+# plot!(time_len, error_cc5[:, r_index], label = "error N2 (implicit Euler), r = $r_index")
 
-plot_cc1_err =  plot(time_len, error_cc1[:, 1], label = "error CO (implicit Euler), r = 1")
-for i in 2:21
-    plot!(plot_cc1_err, time_len, error_cc1[:, i], label = "error CO (implicit Euler), r = $i")
-end
-display(plot_cc1_err)
+# plot_cc1_err =  plot(time_len, error_cc1[:, 1], label = "error CO (implicit Euler), r = 1")
+# for i in 2:21
+#     plot!(plot_cc1_err, time_len, error_cc1[:, i], label = "error CO (implicit Euler), r = $i")
+# end
+# display(plot_cc1_err)
 
-plot_cc2_err =  plot(time_len, error_cc2[:, 1], label = "error CO2 (implicit Euler), r = 1")
-for i in 2:21
-    plot!(plot_cc2_err, time_len, error_cc2[:, i], label = "error CO2 (implicit Euler), r = $i")
-end
-display(plot_cc2_err)
+# plot_cc2_err =  plot(time_len, error_cc2[:, 1], label = "error CO2 (implicit Euler), r = 1")
+# for i in 2:21
+#     plot!(plot_cc2_err, time_len, error_cc2[:, i], label = "error CO2 (implicit Euler), r = $i")
+# end
+# display(plot_cc2_err)
 
-plot_cc3_err =  plot(time_len, error_cc3[:, 1], label = "error H2 (implicit Euler), r = 1")
-for i in 2:21
-    plot!(plot_cc3_err, time_len, error_cc3[:, i], label = "error H2 (implicit Euler), r = $i")
-end
-display(plot_cc3_err)
+# plot_cc3_err =  plot(time_len, error_cc3[:, 1], label = "error H2 (implicit Euler), r = 1")
+# for i in 2:21
+#     plot!(plot_cc3_err, time_len, error_cc3[:, i], label = "error H2 (implicit Euler), r = $i")
+# end
+# display(plot_cc3_err)
 
-plot_cc4_err =  plot(time_len, error_cc4[:, 1], label = "error H2O (implicit Euler), r = 1")
-for i in 2:21
-    plot!(plot_cc4_err, time_len, error_cc4[:, i], label = "error H2O (implicit Euler), r = $i")
-end
-display(plot_cc4_err)
+# plot_cc4_err =  plot(time_len, error_cc4[:, 1], label = "error H2O (implicit Euler), r = 1")
+# for i in 2:21
+#     plot!(plot_cc4_err, time_len, error_cc4[:, i], label = "error H2O (implicit Euler), r = $i")
+# end
+# display(plot_cc4_err)
 
-plot_cc5_err =  plot(time_len, error_cc5[:, 1], label = "error N2 (implicit Euler), r = 1")
-for i in 2:21
-    plot!(plot_cc5_err, time_len, error_cc5[:, i], label = "error N2 (implicit Euler), r = $i")
-end
-display(plot_cc5_err)
+# plot_cc5_err =  plot(time_len, error_cc5[:, 1], label = "error N2 (implicit Euler), r = 1")
+# for i in 2:21
+#     plot!(plot_cc5_err, time_len, error_cc5[:, i], label = "error N2 (implicit Euler), r = $i")
+# end
+# display(plot_cc5_err)
+
 #------------------------------------------------------------------------------------------------------------------------------------------- #
 
-using Surrogates
-#           T  y_CO y_CO2  y_H2  y_H2O  y_N2 
-p_upper = [593.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-p_lower = [393.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]
-nsample = 2000
+## Sampling ##
 
-samples_LHS_og = sample(nsample, p_lower, p_upper, LatinHypercubeSample())
-samples_LHS = hcat(map(x -> collect(x), samples_LHS_og)...)
-samples_LHS = samples_LHS'
+# using Surrogates
 
-# Ensuring the molcefractions sum up to 1
-samples_LHS[:, 2:end] = samples_LHS[:, 2:end] ./ sum(samples_LHS[:, 2:end], dims = 2)
-for i in 1:nsample
-    if !isapprox(1, sum(samples_LHS[i, 2:end]))
-        println("Error in sample $i")
-    end
+# #           T  y_CO y_CO2  y_H2  y_H2O  y_N2 
+# p_upper = [593.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+# p_lower = [393.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]
+# nsample = 2000
+
+# samples_LHS_og = sample(nsample, p_lower, p_upper, LatinHypercubeSample())
+# samples_LHS = hcat(map(x -> collect(x), samples_LHS_og)...)
+# samples_LHS = samples_LHS'
+
+# histogram(samples_LHS[:, 1], label = "T")
+# p1 = histogram(samples_LHS[:, 2], label = "C_CO")
+# histogram!(p1, samples_LHS[:, 3], label = "C_CO2")
+# histogram!(p1, samples_LHS[:, 4], label = "C_H2")
+# histogram!(p1, samples_LHS[:, 5], label = "C_H2O")
+# histogram!(p1, samples_LHS[:, 6], label = "C_N2")
+
+# # Ensuring the molcefractions sum up to 1
+# samples_LHS[:, 2:end] = samples_LHS[:, 2:end] ./ sum(samples_LHS[:, 2:end], dims = 2)
+# for i in 1:nsample
+#     if !isapprox(1, sum(samples_LHS[i, 2:end]))
+#         println("Error in sample $i")
+#     end
+# end
+# samples_LHS
+
+# histogram(samples_LHS[:, 1], label = "T")
+# p2 = histogram(samples_LHS[:, 2], label = "C_CO")
+# histogram!(p2, samples_LHS[:, 3], label = "C_CO2")
+# histogram!(p2, samples_LHS[:, 4], label = "C_H2")
+# histogram!(p2, samples_LHS[:, 5], label = "C_H2O")
+# histogram!(p2, samples_LHS[:, 6], label = "C_N2")
+
+# # Converting molcefractions to concentrations based on new temperature
+# for i in 1:nsample
+#     C_tot_in  = P_val / (R * 1e-3 * samples_LHS[i, 1])
+#     samples_LHS[i, 2:end] = samples_LHS[i, 2:end] .* C_tot_in
+# end
+
+# samples_LHS
+# for i in 1:nsample
+#     C_tot_in  = P_val / (R * 1e-3 * samples_LHS[i, 1])
+#     if C_tot_in != sum(samples_LHS[i, 2:end])
+#         println("1. Error in sample $i, difference= ", C_tot_in - sum(samples_LHS[i, 2:end]))
+#     end
+# end
+
+# for i in 1:nsample
+#     if samples_LHS[i, 2] == 0.0 || samples_LHS[i, 3] == 0.0 || samples_LHS[i, 4] == 0.0 || samples_LHS[i, 5] == 0.0
+#         println("2. Error in sample $i")
+#     end
+# end
+
+# using DelimitedFiles
+# write_to_csv("samples_LHS.csv", samples_LHS, "WGS_particle_reaction")
+
+# using Plots
+
+# plot(samples_LHS[:, 1], samples_LHS[:, 2], seriestype = :scatter, label = "LHS samples T vs C_CO")
+# plot(samples_LHS[:, 1], samples_LHS[:, 3], seriestype = :scatter, label = "LHS samples T vs C_CO2")
+# plot(samples_LHS[:, 1], samples_LHS[:, 4], seriestype = :scatter, label = "LHS samples T vs C_H2")
+# plot(samples_LHS[:, 1], samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples T vs C_H2O")
+# plot(samples_LHS[:, 1], samples_LHS[:, 6], seriestype = :scatter, label = "LHS samples T vs C_N2")
+# plot(samples_LHS[:, 2], samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples C_CO vs C_H2O")
+# plot(samples_LHS[:, 1], samples_LHS[:, 2]./samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples T vs syngas ratio")
+
+# histogram(samples_LHS[:, 1], label = "T")
+# p3 = histogram(samples_LHS[:, 2], label = "C_CO")
+# histogram!(p3, samples_LHS[:, 3], label = "C_CO2")
+# histogram!(p3, samples_LHS[:, 4], label = "C_H2")
+# histogram!(p3, samples_LHS[:, 5], label = "C_H2O")
+# histogram!(p3, samples_LHS[:, 6], label = "C_N2")
+
+# display(p1)
+# display(p2)
+# display(p3)
+
+#------------------------------------------------------------------------------------------------------------------------------------------- #
+
+using DelimitedFiles
+p_sampled = readdlm("WGS_particle_reaction/samples_LHS.csv", ',', Float64, '\n')
+
+time_loop = []
+
+# prediff
+zero_val = 1e-15 # isapprox(0, 1e-324) = true
+C_c_i_init_new = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
+
+t0_total = time()
+
+for k in 1:10
+    t0_it = time()
+
+    folder = "WGS_particle_reaction/ml_data/k$(k)"
+
+    newprms_scal = [T => p_sampled[k, 1], P => P_val, F => F_val]
+    newprms_vec_C_i = [C_i[i] => p_sampled[k, i+1] for i in 1:5]
+    newprms_vec_C_c_i_init = [C_c_i_init[i] => C_c_i_init_new[i] for i in 1:5]
+    newprms = [newprms_scal...; newprms_vec_C_i...; newprms_vec_C_c_i_init...]
+
+    # Domain (time is in [h])
+    domains_new = [t ∈ Interval(0.0, 5e-4),
+        r ∈ Interval(0.0, rad_cat)]
+
+    @named WGS_pde_new = PDESystem(eqs, bcs, domains_new, [t, r], vars, newprms)
+    discretization_new = MOLFiniteDifference([r => dr], t, order=order)
+
+    t0_disc_new = time()
+    newprob = discretize(WGS_pde_new, discretization_new)
+    t1_disc_new = time() - t0_disc_new
+    print("\nDiscretization time k = $k: ", t1_disc_new, "\n")
+
+    t0_sol_new = time()
+    newsol = solve(newprob, FBDF(), abstol = 1e-6, reltol = 1e-6)
+    t1_sol_new = time() - t0_sol_new
+    print("\nSolution time k = $k: ", t1_sol_new, "\n")
+
+    write_to_csv("k$(k)_sol_cc1_og.csv", newsol[C_c_1(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc2_og.csv", newsol[C_c_2(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc3_og.csv", newsol[C_c_3(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc4_og.csv", newsol[C_c_4(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc5_og.csv", newsol[C_c_5(t, r)], folder)
+    write_to_csv("k$(k)_sol_t_og.csv", newsol.t, folder)
+
+    dccidt, _ = finite_diff_sol(newsol)
+
+    write_to_csv("k$(k)_dCC1dt_og.csv", dccidt[1], folder)
+    write_to_csv("k$(k)_dCC2dt_og.csv", dccidt[2], folder)
+    write_to_csv("k$(k)_dCC3dt_og.csv", dccidt[3], folder)
+    write_to_csv("k$(k)_dCC4dt_og.csv", dccidt[4], folder)
+    write_to_csv("k$(k)_dCC5dt_og.csv", dccidt[5], folder)
+
+    plot(newsol.t, newsol[C_c_1(t, r)], label = "CO")
+    plot!(newsol.t, newsol[C_c_2(t, r)], label = "CO2")
+    plot!(newsol.t, newsol[C_c_3(t, r)], label = "H2")
+    plot!(newsol.t, newsol[C_c_4(t, r)], label = "H2O")
+    plot!(newsol.t, newsol[C_c_5(t, r)], label = "N2")
+    savefig("WGS_particle_reaction/ml_data/k$(k)/k$(k)_sol_og.png")
+
+    plot(newsol.t, dccidt[1], label = "dCC_CO_dt")
+    plot!(newsol.t, dccidt[2], label = "dCC_CO2_dt")
+    plot!(newsol.t, dccidt[3], label = "dCC_H2_dt")
+    plot!(newsol.t, dccidt[4], label = "dCC_H2O_dt")
+    plot!(newsol.t, dccidt[5], label = "dCC_N2_dt")
+    savefig("WGS_particle_reaction/ml_data/k$(k)/k$(k)_dCCdt_og.png")
+
+    # newsol with constant timestep
+    newsol_const = solve(newprob, FBDF(), saveat = 1e-6 ,abstol = 1e-6, reltol = 1e-6)
+
+    write_to_csv("k$(k)_sol_cc1_1e-6.csv", newsol_const[C_c_1(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc2_1e-6.csv", newsol_const[C_c_2(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc3_1e-6.csv", newsol_const[C_c_3(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc4_1e-6.csv", newsol_const[C_c_4(t, r)], folder)
+    write_to_csv("k$(k)_sol_cc5_1e-6.csv", newsol_const[C_c_5(t, r)], folder)
+    write_to_csv("k$(k)_sol_t_1e-6.csv", newsol_const.t, folder)
+
+    dccidt_const, _ = finite_diff_sol(newsol_const)
+
+    write_to_csv("k$(k)_dCC1dt_1e-6.csv", dccidt_const[1], folder)
+    write_to_csv("k$(k)_dCC2dt_1e-6.csv", dccidt_const[2], folder)
+    write_to_csv("k$(k)_dCC3dt_1e-6.csv", dccidt_const[3], folder)
+    write_to_csv("k$(k)_dCC4dt_1e-6.csv", dccidt_const[4], folder)
+    write_to_csv("k$(k)_dCC5dt_1e-6.csv", dccidt_const[5], folder)
+
+    plot(newsol_const.t, newsol_const[C_c_1(t, r)], label = "CO")
+    plot!(newsol_const.t, newsol_const[C_c_2(t, r)], label = "CO2")
+    plot!(newsol_const.t, newsol_const[C_c_3(t, r)], label = "H2")
+    plot!(newsol_const.t, newsol_const[C_c_4(t, r)], label = "H2O")
+    plot!(newsol_const.t, newsol_const[C_c_5(t, r)], label = "N2")
+    savefig("WGS_particle_reaction/ml_data/k$(k)/k$(k)_sol_1e-6.png")
+
+    plot(newsol_const.t, dccidt_const[1], label = "dCC_CO_dt")
+    plot!(newsol_const.t, dccidt_const[2], label = "dCC_CO2_dt")
+    plot!(newsol_const.t, dccidt_const[3], label = "dCC_H2_dt")
+    plot!(newsol_const.t, dccidt_const[4], label = "dCC_H2O_dt")
+    plot!(newsol_const.t, dccidt_const[5], label = "dCC_N2_dt")
+    savefig("WGS_particle_reaction/ml_data/k$(k)/k$(k)_dCCdt_1e-6.png")
+
+    t1_it = time() - t0_it
+    push!(time_loop, t1_it)
+
+    print("\nDone with k = $k\n")
 end
-samples_LHS
 
-# Converting molcefractions to concentrations based on new temperature
-for i in 1:nsample
-    C_tot_in  = P_val / (R * 1e-3 * samples_LHS[i, 1])
-    samples_LHS[i, 2:end] = samples_LHS[i, 2:end] .* C_tot_in
-end
+t1_total = time() - t0_total
+push!(time_loop, t1_total)
+print("\nTotal time: ", t1_total, "\n")
 
-samples_LHS
-for i in 1:nsample
-    C_tot_in  = P_val / (R * 1e-3 * samples_LHS[i, 1])
-    if C_tot_in != sum(samples_LHS[i, 2:end])
-        println("1. Error in sample $i, difference= ", C_tot_in - sum(samples_LHS[i, 2:end]))
-    end
-end
-
-using Plots
-
-plot(samples_LHS[:, 1], samples_LHS[:, 2], seriestype = :scatter, label = "LHS samples T vs C_CO")
-plot(samples_LHS[:, 1], samples_LHS[:, 3], seriestype = :scatter, label = "LHS samples T vs C_CO2")
-plot(samples_LHS[:, 1], samples_LHS[:, 4], seriestype = :scatter, label = "LHS samples T vs C_H2")
-plot(samples_LHS[:, 1], samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples T vs C_H2O")
-plot(samples_LHS[:, 1], samples_LHS[:, 6], seriestype = :scatter, label = "LHS samples T vs C_N2")
-plot(samples_LHS[:, 2], samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples C_CO vs C_H2O")
-plot(samples_LHS[:, 1], samples_LHS[:, 2]./samples_LHS[:, 5], seriestype = :scatter, label = "LHS samples T vs syngas ratio")
-
+write_to_csv("time_k1-k10.csv", time_loop, "WGS_particle_reaction/ml_data")
