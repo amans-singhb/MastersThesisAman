@@ -195,7 +195,7 @@ function k_c_i_func(T, P, R, C_i, D_i_m, D_cat, D_rct, F)
         C_i[4]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);
         C_i[5]/(C_i[1] + C_i[2] + C_i[3] + C_i[4] + C_i[5]);]
     M_i = [28.01, 44.01, 2.016, 18.016, 28.014]
-    M = sum(y .* M_i)
+    M = sum(y .* M_i) # [kg/kmol]
 
     ρ = (P * M) / (R * T) # [kg/m^3]
 
@@ -263,4 +263,23 @@ function finite_diff_sol(sol)
     end
 
     return Δcci_t, err
+end
+
+### Functions for calcaulating some quality metrics ###
+
+using Statistics
+
+# Function for calcaulating mean squared error
+function MSE(true_val, pred_val)
+    return sum((true_val - pred_val).^2) / length(true_val)
+end
+
+# Function for calcaulating root mean squared error
+function RMSE(true_val, pred_val)
+    return sqrt(MSE(true_val, pred_val))
+end
+
+# Function for calcaulating R squared
+function R_squared(true_val, pred_val)
+    return 1 - sum((true_val - pred_val).^2) / sum((true_val .- mean(true_val)).^2)
 end

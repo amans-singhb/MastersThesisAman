@@ -44,21 +44,72 @@ d_cat_val = 5904 # [kg/m^3] [param5]
 τ_val = 5 #[-] [param4]
 R_atmm3 = 8.2057e-2 # [m3 atm/kmol K] [param2]
 
+#------------------------------------
+L_rct = 4.8e-3 # [m]
+V_rct = π * (D_rct_val/2)^2 * L_rct # [m^3]
+L_rct2 = 304.8e-3 # [m]
+V_rct2 = π * (D_rct_val/2)^2 * L_rct2 # [m^3]
+V_rct2/V_rct
+# Industrial reactor parameter from paper ------------------------------------- #
+F_ind = 9199 * 1000 # [mol/h]
+D_ind = 4.4 # [m]
+L_ind = 14 # [m]
+
+V_ind = π * (D_ind/2)^2 * L_ind # [m^3]
+P_ind = 54.28 # [atm]
+T_ind = 503.0 # [K]
+
+q_ind = (F_ind * R_atmm3 * 1e-3 * T_ind) / P_ind # [m^3/h]
+restime_ind = V_ind / q_ind # [h]
+restime_ind_s = restime_ind * 3600 # [s]
+# ----------------------------------------------------------------------------- #
+
+## Parameters
+
 # Inlet values
-F_0 = 1e-5 # [mol/h] 
 T_val = 503.0 # [K] [param1]
-P_val = 1.3 # [atm] [param6]
+P_val = 1.3 # [atm] [param2]
 
-C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
-
+# Temp vals F ----------------------------------------------------------------- #
 y_0 = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
-C_total = sum(C_i_old)
-V = F_0/C_total
+volume_ratio = V_rct / V_ind
+vol_ratio2 = V_rct2 / V_ind
+f_temp2 = F_ind * vol_ratio2
+f_temp = F_ind * volume_ratio
+# ----------------------------------------------------------------------------- #
+F_0 = f_temp * (P_val/ P_ind) * (T_ind / T_val) # [mol/h] [param3]
+F_val2 = f_temp2 * (P_val/ P_ind) * (T_ind / T_val) # [mol/h] [param3]
 
-C_i_val = (F_0 * y_0) / V
+# Temp vals C ----------------------------------------------------------------- #
+C_total = P_val / (R_atmm3 * 1e-3 * T_val) # [mol/m^3]
+C_i_val_temp = C_total * y_0 # [mol/m^3]
+C_i_val_temp[4]/C_i_val_temp[1] # 2.3
+# ----------------------------------------------------------------------------- #
+C_i_val = [C_i_val_temp[1], C_i_val_temp[2], C_i_val_temp[3], 2.3 * C_i_val_temp[1], C_i_val_temp[5]] # [mol/m^3]
 
+# # postdiff:
+# C_c_i_init_val = C_i_val
+
+# prediff:
 zero_val = 1e-15 # isapprox(0, 1e-324) = true
 C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
+#------------------------------------
+31.49631404693692
+# # Inlet values
+# F_0 = 1e-5 # [mol/h] 
+# T_val = 503.0 # [K] [param1]
+# P_val = 1.3 # [atm] [param6]
+
+# C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
+
+# y_0 = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
+# C_total = sum(C_i_old)
+# V = F_0/C_total
+
+# C_i_val = (F_0 * y_0) / V
+
+# zero_val = 1e-15 # isapprox(0, 1e-324) = true
+# C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
 
 # Mass transfer coefficients (bulk phase)
 D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_val, P_val) # [m^2/h]
@@ -108,7 +159,7 @@ bcs = [ICS_C_c_i...; BCS2...; BCS3...]
 using OrdinaryDiffEq, DomainSets, MethodOfLines
 
 # Domain (time is in [h])
-domains = [t ∈ Interval(0.0, 1e-2),
+domains = [t ∈ Interval(0.0, 5e-4),
     r ∈ Interval(0.0, rad_cat)]
 
 # System
@@ -133,7 +184,7 @@ prob = discretize(WGS_pde, discretization)
 using BenchmarkTools
 
 t0_solve = time()
-sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
+sol = solve(prob, FBDF(), saveat = 1e-6, abstol = 1e-6, reltol = 1e-6)
 t1_solve = time() - t0_solve
 println("Solving time: ", t1_solve)
 
@@ -220,3 +271,105 @@ println("Solving time: ", t1_solve)
 # C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
 # C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
 # C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
+
+
+using DelimitedFiles
+using Statistics
+using Plots
+
+sols1 = sol[C_c_1(t, r)][1:280, 1]
+sols2 = sol[C_c_2(t, r)][1:280, 1]
+sols3 = sol[C_c_3(t, r)][1:280, 1]
+sols4 = sol[C_c_4(t, r)][1:280, 1]
+sols5 = sol[C_c_5(t, r)][1:280, 1]
+solt = sol.t * 3600
+sol_t = solt[1:280]
+
+plot(sol_t, sols1, label = "C_c_1", dpi = 1000)
+plot!(sol_t, sols2, label = "C_c_2")
+plot!(sol_t, sols3, label = "C_c_3")
+plot!(sol_t, sols4, label = "C_c_4")
+plot!(sol_t, sols5, label = "C_c_5")
+xlabel!("Time [s]")
+ylabel!("Concentration [mol/m^3]")
+title!("Concentration profiles of C_c_i from the diffusion model at r = 0.0 m", titlefontsize=10, titlefontcolor=:black)
+savefig("WGS_particle/result_diff_model.png")
+
+sol1_sss = sol[C_c_1(t, r)][1:280, :]
+sol2_sss = sol[C_c_2(t, r)][1:280, :]
+sol3_sss = sol[C_c_3(t, r)][1:280, :]
+sol4_sss = sol[C_c_4(t, r)][1:280, :]
+sol5_sss = sol[C_c_5(t, r)][1:280, :]
+sol_t_sss = sol.t[1:280] * 3600
+
+plot(sol_t_sss, sol1_sss[:, 1:20], label = false, dpi = 1000)
+plot!(sol_t_sss, sol1_sss[:, 21], label = "C_c_1")
+plot!(sol_t_sss, sol2_sss[:, 1:20], label = false)
+plot!(sol_t_sss, sol2_sss[:, 21], label = "C_c_2")
+plot!(sol_t_sss, sol3_sss[:, 1:20], label = false)
+plot!(sol_t_sss, sol3_sss[:, 21], label = "C_c_3")
+plot!(sol_t_sss, sol4_sss[:, 1:20], label = false)
+plot!(sol_t_sss, sol4_sss[:, 21], label = "C_c_4")
+plot!(sol_t_sss, sol5_sss[:, 1:20], label = false)
+plot!(sol_t_sss, sol5_sss[:, 21], label = "C_c_5")
+xlabel!("Time [s]")
+ylabel!("Concentration [mol/m^3]")
+title!("Concentration profiles of C_c_i from the diffusion model at all r", titlefontsize=10, titlefontcolor=:black)
+savefig("WGS_particle/result_diff_model_all_r.png")
+
+range_R = range(0.0, rad_cat, length = 21)
+
+cc1 = sol[C_c_1(t, r)][end, :]
+cc2 = sol[C_c_2(t, r)][end, :]
+cc3 = sol[C_c_3(t, r)][end, :]
+cc4 = sol[C_c_4(t, r)][end, :]
+cc5 = sol[C_c_5(t, r)][end, :]
+
+mean_c = [mean(cc1), mean(cc), mean(cc3), mean(cc4), mean(cc5)]
+diff = mean_c - C_i_val
+
+results = [range_R cc1 cc2 cc3 cc4 cc5]
+write_to_csv("results.csv", results, "WGS_particle")
+
+t_1 = readdlm("WGS_particle/solver/time_FBDF.csv", ',', Float64, '\n')
+t_2 = readdlm("WGS_particle/solver/time_KenCarp47.csv", ',', Float64, '\n')
+t_3 = readdlm("WGS_particle/solver/time_QNDF.csv", ',', Float64, '\n')
+t_4 = readdlm("WGS_particle/solver/time_RadauIIA5.csv", ',', Float64, '\n')
+t_5 = readdlm("WGS_particle/solver/time_Rodas5P.csv", ',', Float64, '\n')
+
+times = [mean(t_1), mean(t_2), mean(t_3), mean(t_4), mean(t_5)]
+
+t_pre = readdlm("WGS_particle/solver/solvertimes_prediff.csv", ',', '\n')
+t_post = readdlm("WGS_particle/solver/solvertimes_postdiff.csv", ',', '\n')
+
+for i in 1:5
+    str = t_pre[i]
+    parts = split(str, ",")
+    num = parse(Float64, strip(parts[2]))
+    t_pre[i] = num
+end
+
+for i in 1:5
+    str = t_post[i]
+    parts = split(str, ",")
+    num = parse(Float64, strip(parts[2]))
+    t_post[i] = num
+end
+
+t1 = [t_pre[1], t_post[1]]
+t2 = [t_pre[2], t_post[2]]
+t3 = [t_pre[3], t_post[3]]
+t4 = [t_pre[4], t_post[4]]
+t5 = [t_pre[5], t_post[5]]
+
+using Statistics
+
+t_res = [mean(t1), mean(t2), mean(t3), mean(t4), mean(t5)]
+
+times_solve = readdlm("WGS_particle/data_generation_time.csv", ',', '\n')
+
+num_t = times_solve[1:end-2]
+
+max_t = maximum(num_t)
+min_t = minimum(num_t)
+mean_t = mean(num_t)
