@@ -4,7 +4,7 @@ using Pkg
 Pkg.activate("WGS")
 Pkg.status()
 include("functions_WGSParticleReaction.jl")
-include("ALAMO_Surrogates.jl")
+include("SurrogatesWGS.jl")
 
 ### Defining naming conventions, numeration and units ###
 
@@ -718,6 +718,7 @@ m2_c5_test = abs.(data_m2_test[:, 5])
 min_m2_test = [minimum(m2_c1_test) minimum(m2_c2_test) minimum(m2_c3_test) minimum(m2_c4_test) minimum(m2_c5_test)]
 max_m2_test = [maximum(m2_c1_test) maximum(m2_c2_test) maximum(m2_c3_test) maximum(m2_c4_test) maximum(m2_c5_test)]
 # ------------------------------------------------------------------------------------------------------------------------------------------- #
+
 using DelimitedFiles
 using Plots
 

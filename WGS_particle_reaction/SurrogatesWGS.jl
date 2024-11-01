@@ -1,4 +1,4 @@
-### Surrogate models from ALAMO for d_C_c_i/dt ###
+### Surrogate models for d_C_c_i/dt ###
 using Pkg
 Pkg.activate("WGS")
 

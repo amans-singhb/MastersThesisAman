@@ -223,20 +223,6 @@ function write_to_csv(filename::String, data, folder_path::String, delimiter::St
     writedlm(file_path, data, delimiter)
 end
 
-# Function for extracting data from solutions
-function extractData(sol; t_length = length(sol.t), r_length = 21, modelPDESize = 5, idx = [10, 4, 3, 11, 6])
-    data = [zeros(Float64, t_length, modelPDESize) for _ in 1:r_length]
-    t_range = sol.t
-    r_range = range(0.0, 0.125e-3, length=r_length)
-    # i for radial position, j for time
-    for i in 1:r_length
-        for j in 1:t_length
-            data[i][j,:] = sol(t_range[j], r_range[i])[idx]
-        end
-    end
-    return data
-end
-
 # function for numerical differentiation of solutions (forward, backward and central difference)
 function finite_diff_sol(sol)
     sol_cci = [sol[C_c_1(t, r)], sol[C_c_2(t, r)], sol[C_c_3(t, r)], sol[C_c_4(t, r)], sol[C_c_5(t, r)]]

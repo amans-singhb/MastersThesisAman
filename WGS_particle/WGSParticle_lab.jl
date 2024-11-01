@@ -49,7 +49,7 @@ L_rct = 4.8e-3 # [m]
 V_rct = π * (D_rct_val/2)^2 * L_rct # [m^3]
 L_rct2 = 304.8e-3 # [m]
 V_rct2 = π * (D_rct_val/2)^2 * L_rct2 # [m^3]
-V_rct2/V_rct
+
 # Industrial reactor parameter from paper ------------------------------------- #
 F_ind = 9199 * 1000 # [mol/h]
 D_ind = 4.4 # [m]
@@ -78,7 +78,6 @@ f_temp2 = F_ind * vol_ratio2
 f_temp = F_ind * volume_ratio
 # ----------------------------------------------------------------------------- #
 F_0 = f_temp * (P_val/ P_ind) * (T_ind / T_val) # [mol/h] [param3]
-F_val2 = f_temp2 * (P_val/ P_ind) * (T_ind / T_val) # [mol/h] [param3]
 
 # Temp vals C ----------------------------------------------------------------- #
 C_total = P_val / (R_atmm3 * 1e-3 * T_val) # [mol/m^3]
@@ -93,23 +92,7 @@ C_i_val = [C_i_val_temp[1], C_i_val_temp[2], C_i_val_temp[3], 2.3 * C_i_val_temp
 # prediff:
 zero_val = 1e-15 # isapprox(0, 1e-324) = true
 C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
-#------------------------------------
-31.49631404693692
-# # Inlet values
-# F_0 = 1e-5 # [mol/h] 
-# T_val = 503.0 # [K] [param1]
-# P_val = 1.3 # [atm] [param6]
 
-# C_i_old = [0.8054052715722035, 4.495365881590822, 4.411693222036165, 6.4630197133702625, 0.2705595896804266]
-
-# y_0 = [0.208917; 0.0910445; 0.204129; 0.480558; 0.0153515;] # from paper
-# C_total = sum(C_i_old)
-# V = F_0/C_total
-
-# C_i_val = (F_0 * y_0) / V
-
-# zero_val = 1e-15 # isapprox(0, 1e-324) = true
-# C_c_i_init = [zero_val, zero_val, zero_val, zero_val, (C_total-4*zero_val)]
 
 # Mass transfer coefficients (bulk phase)
 D_i_m_bulk = D_i_m_func(C_i_val, θ_val, τ_val, T_val, P_val) # [m^2/h]
@@ -176,102 +159,11 @@ order = 2
 discretization = MOLFiniteDifference([r => dr], t, order=order)
 
 # Converting PDE to ODE with MOL
-# t0_disc = time()
 prob = discretize(WGS_pde, discretization)
-# t1_disc = time() - t0_disc
-# println("Discretization time: ", t1_disc)
 
-using BenchmarkTools
-
-t0_solve = time()
 sol = solve(prob, FBDF(), saveat = 1e-6, abstol = 1e-6, reltol = 1e-6)
-t1_solve = time() - t0_solve
-println("Solving time: ", t1_solve)
-
-# # @btime
-# @btime sol = solve(prob, FBDF(), abstol = 1e-6, reltol = 1e-6)
-# @btime sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
-# @btime sol = solve(prob, QNDF(), abstol = 1e-6, reltol = 1e-6)
-# @btime sol = solve(prob, RadauIIA5(), abstol = 1e-6, reltol = 1e-6)
-# @btime sol = solve(prob, Rodas5P(), abstol = 1e-6, reltol = 1e-6)
-
-# @btime sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
-
-# # @benchmark
-# @benchmark sol = solve(prob, FBDF(), abstol = 1e-6, reltol = 1e-6)
-# @benchmark sol = solve(prob, KenCarp47(), abstol = 1e-6, reltol = 1e-6)
-# @benchmark sol = solve(prob, QNDF(), abstol = 1e-6, reltol = 1e-6)
-# @benchmark sol = solve(prob, RadauIIA5(), abstol = 1e-6, reltol = 1e-6)
-# @benchmark sol = solve(prob, Rodas5P(), abstol = 1e-6, reltol = 1e-6)
-
-# @benchmark sol = solve(prob, Rosenbrock23(), abstol = 1e-6, reltol = 1e-6)
-
 
 #--------------------------------------------------------------------------------------------------------------#
-
-# sol = solve(prob, FBDF(), saveat = 0.001, abstol = 1e-6, reltol = 1e-6)
-# sols = sol[C_c_1(t, r)]
-# sol_t = sol.t * 3600
-
-# sols1 = sol[C_c_1(t, r)][:, 21]
-# sols2 = sol[C_c_2(t, r)][:, 21]
-# sols3 = sol[C_c_3(t, r)][:, 21]
-# sols4 = sol[C_c_4(t, r)][:, 21]
-# sols5 = sol[C_c_5(t, r)][:, 21]
-# sol_t = sol.t * 3600
-
-# plot(sol_t, sols1, label = "CO")
-# plot!(sol_t, sols2, label = "CO2")
-# plot!(sol_t, sols3, label = "H2")
-# plot!(sol_t, sols4, label = "H2O")
-# plot!(sol_t, sols5, label = "N2")
-
-# using DelimitedFiles
-
-# Define T and P rangues
-# temp_range = [393.0; 483.0; 573.0;]
-# pres_range = [1.0; 2.0; 3.0;]
- 
-# Generate results
-# make_results(temp_range[3], pres_range[3], prms, prob)
-
-# for i in eachindex(temp_range)
-#     for j in eachindex(pres_range)
-#         make_results(temp_range[i], pres_range[j], prms, prob)
-#     end
-# end
-
-# using Plots
-
-# Generate plots
-# for i in eachindex(temp_range)
-#     for j in eachindex(pres_range)
-#         make_plots(temp_range[i], pres_range[j], [1; 11; 21], 0.001)
-#     end
-# end
-
-# # Plotting 
-# time = 0.01
-# index_sol = Int(time/0.0001)
-# solution = sols[:, 1]
-
-# using Plots
-
-# plot(sol_t, solution)
-
-# folder = "WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm"
-# write_to_csv("C_c_1_573.0K_3.0atm_lab.csv", sol[C_c_1(t, r)], folder)
-# write_to_csv("C_c_2_573.0K_3.0atm_lab.csv", sol[C_c_2(t, r)], folder)
-# write_to_csv("C_c_3_573.0K_3.0atm_lab.csv", sol[C_c_3(t, r)], folder)
-# write_to_csv("C_c_4_573.0K_3.0atm_lab.csv", sol[C_c_4(t, r)], folder)
-# write_to_csv("C_c_5_573.0K_3.0atm_lab.csv", sol[C_c_5(t, r)], folder)
-
-# C_c_11 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_1_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-# C_c_21 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_2_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-# C_c_31 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_3_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-# C_c_41 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_4_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-# C_c_51 = readdlm("WGS_particle/results_particle_lab_parameters/param573.0K_3.0atm/C_c_5_573.0K_3.0atm_lab.csv", ',', Float64, '\n')
-
 
 using DelimitedFiles
 using Statistics
@@ -329,47 +221,3 @@ mean_c = [mean(cc1), mean(cc), mean(cc3), mean(cc4), mean(cc5)]
 diff = mean_c - C_i_val
 
 results = [range_R cc1 cc2 cc3 cc4 cc5]
-write_to_csv("results.csv", results, "WGS_particle")
-
-t_1 = readdlm("WGS_particle/solver/time_FBDF.csv", ',', Float64, '\n')
-t_2 = readdlm("WGS_particle/solver/time_KenCarp47.csv", ',', Float64, '\n')
-t_3 = readdlm("WGS_particle/solver/time_QNDF.csv", ',', Float64, '\n')
-t_4 = readdlm("WGS_particle/solver/time_RadauIIA5.csv", ',', Float64, '\n')
-t_5 = readdlm("WGS_particle/solver/time_Rodas5P.csv", ',', Float64, '\n')
-
-times = [mean(t_1), mean(t_2), mean(t_3), mean(t_4), mean(t_5)]
-
-t_pre = readdlm("WGS_particle/solver/solvertimes_prediff.csv", ',', '\n')
-t_post = readdlm("WGS_particle/solver/solvertimes_postdiff.csv", ',', '\n')
-
-for i in 1:5
-    str = t_pre[i]
-    parts = split(str, ",")
-    num = parse(Float64, strip(parts[2]))
-    t_pre[i] = num
-end
-
-for i in 1:5
-    str = t_post[i]
-    parts = split(str, ",")
-    num = parse(Float64, strip(parts[2]))
-    t_post[i] = num
-end
-
-t1 = [t_pre[1], t_post[1]]
-t2 = [t_pre[2], t_post[2]]
-t3 = [t_pre[3], t_post[3]]
-t4 = [t_pre[4], t_post[4]]
-t5 = [t_pre[5], t_post[5]]
-
-using Statistics
-
-t_res = [mean(t1), mean(t2), mean(t3), mean(t4), mean(t5)]
-
-times_solve = readdlm("WGS_particle/data_generation_time.csv", ',', '\n')
-
-num_t = times_solve[1:end-2]
-
-max_t = maximum(num_t)
-min_t = minimum(num_t)
-mean_t = mean(num_t)
