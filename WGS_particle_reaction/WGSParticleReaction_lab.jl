@@ -272,7 +272,7 @@ ylabel!("Concentration [mol/m^3]")
 savefig("WGS_particle_reaction/figures_rslt/result_true_case_rand.png")
 
 # ------------------------------------------------------------------------------------------------------------------------------------------- #
-# Using surrogate model to preedict the evolution of C_c_i
+# Using surrogate model to predict the evolution of C_c_i
 
 using DifferentialEquations
 
